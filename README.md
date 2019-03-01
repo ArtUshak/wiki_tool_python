@@ -167,4 +167,5 @@ pipenv run python wikiexport.py download-images ../absurdopedia/image.txt ../abs
 ## Special thanks
 
 *   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
-*   [Рыцарь (Knight) aka Riddari](http://wikireality.ru).
+*   Рыцарь (Knight) aka Riddari.
+*   Other cool guys.
