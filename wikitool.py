@@ -1,0 +1,476 @@
+# -*- coding: utf-8 -*-
+"""Script for interacting with MediaWiki."""
+import json
+import os
+import re
+import shutil
+from typing import List, Iterator, Dict, Any, IO, Optional, Tuple, Iterable
+
+import click
+import requests
+
+import mediawiki
+
+
+def read_image_list(image_list_file: IO) -> Iterator[Dict[str, str]]:
+    """
+    Iterate over image data listed in file `image_list_file`.
+
+    Each image data is dictionary with two fields: `name` and `url`.
+    """
+    file_iterator = iter(image_list_file)
+    try:
+        while True:
+            next(file_iterator)
+            title_line = next(file_iterator)
+            url_line = next(file_iterator)
+            yield {
+                'name': title_line.strip()[5:],
+                'url': url_line.strip(),
+            }
+    except StopIteration:
+        pass
+
+
+@click.group()
+@click.option(
+    '--credentials', type=click.STRING,
+    help='LOGIN:PASSWORD pair for MediaWiki'
+)
+@click.option(
+    '--mediawiki-version', default='1.31', type=click.STRING,
+    help='MediaWiki version, default is 1.31'
+)
+@click.pass_context
+def cli(
+    ctx: click.Context, credentials: Optional[str],
+    mediawiki_version: Optional[str]
+):
+    """Run MediaWiki script for exporting data and downloading images."""
+    ctx.ensure_object(dict)
+
+    credentials_list: List[str] = []
+    if credentials is not None:
+        credentials_list = credentials.split(':')
+        if len(credentials_list) != 2:
+            raise click.ClickException('Bad credentials format')
+        ctx.obj['MEDIAWIKI_CREDENTIALS'] = tuple(credentials_list)
+    elif 'MEDIAWIKI_CREDENTIALS' in os.environ:
+        credentials = os.environ['MEDIAWIKI_CREDENTIALS']
+        credentials_list = credentials.split(':')
+        if len(credentials_list) != 2:
+            raise click.ClickException('Bad credentials format')
+        ctx.obj['MEDIAWIKI_CREDENTIALS'] = tuple(credentials_list)
+
+    ctx.obj['MEDIAWIKI_VERSION'] = mediawiki_version
+
+
+def get_mediawiki_api(
+    mediawiki_version: str, api_url: str
+) -> mediawiki.MediaWikiAPI:
+    """
+    Return MediaWiki API object for given version and API URL.
+
+    Return `None` if version is not implemented
+    """
+    if mediawiki_version == '1.31':
+        return mediawiki.MediaWikiAPI1_31(api_url)
+    if mediawiki_version == '1.19':
+        return mediawiki.MediaWikiAPI1_19(api_url)  # TODO
+    raise click.ClickException(
+        'MediaWiki API version {} is not yet implemented'.format(
+            mediawiki_version
+        )
+    )
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.option(
+    '--output-file', type=click.File('wt'),
+    help='Text file to write image list'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def list_images(
+    ctx: click.Context, api_url: str, output_file: IO, api_limit: int
+):
+    """List images from wikiproject (titles and URLs)."""
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    for image in api.get_image_list(api_limit):
+        click.echo(
+            'FILE\n{}\n{}'.format(image['title'], image['url']),
+            file=output_file
+        )
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.option(
+    '--output-file', type=click.File('wt'),
+    help='Text file to write page list'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def list_pages(
+    ctx: click.Context, api_url: str, output_file: IO, api_limit: int
+):
+    """List page names from wikiproject."""
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    for namespace in api.get_namespace_list():
+        for page_name in api.get_page_list(
+            namespace, api_limit
+        ):
+            click.echo(
+                '{}'.format(page_name),
+                file=output_file
+            )
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument('namespace', type=click.INT)
+@click.option(
+    '--output-file', type=click.File('wt'),
+    help='Text file to write page list'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def list_namespace_pages(
+    ctx: click.Context, api_url: str, namespace: int, output_file: IO,
+    api_limit: int
+):
+    """List page names from wikiproject."""
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    for page_name in api.get_page_list(
+        namespace, api_limit
+    ):
+        click.echo(
+            '{}'.format(page_name),
+            file=output_file
+        )
+
+
+@click.command()
+@click.pass_context
+@click.argument(
+    'output_directory', type=click.Path(file_okay=False, dir_okay=True)
+)
+@click.argument('api_url', type=click.STRING)
+@click.option(
+    '--all-namespaces', default=False, type=click.BOOL,
+    help='TRUE to list for all namespaces, FALSE for main namespace only'
+)
+@click.option(
+    '--file-entry-num', default=500, type=click.INT,
+    help='Number of entries per JSON file'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def list_deletedrevs(
+    ctx: click.Context, output_directory, api_url: str, all_namespaces: bool,
+    file_entry_num: int, api_limit: int
+):
+    """List deleted revision from wikiproject in JSON format."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    file_number = 0
+
+    namespaces: Iterable[int] = [0]
+    if all_namespaces:
+        namespaces = api.get_namespace_list()
+
+    for namespace in namespaces:
+        chunk: List[Dict[str, Any]] = []
+        for revision in api.get_deletedrevs_list(
+                namespace, api_limit
+        ):
+            chunk.append(revision)
+
+            if len(chunk) == file_entry_num:
+                output_file_path = os.path.join(
+                    output_directory, 'entry-{}.json'.format(file_number)
+                )
+                with open(output_file_path, 'wt') as output_file:
+                    json.dump(
+                        chunk,
+                        output_file,
+                        ensure_ascii=False
+                    )
+
+                chunk = []
+                file_number += 1
+
+    if len(chunk) > 0:
+        output_file_path = os.path.join(
+            output_directory, 'entry-{}.json'.format(file_number)
+        )
+        with open(output_file_path, 'wt') as output_file:
+            json.dump(
+                chunk,
+                output_file,
+                ensure_ascii=False
+            )
+
+
+@click.command()
+@click.pass_context
+@click.argument(
+    'filter_expression', type=click.STRING
+)
+@click.argument('api_url', type=click.STRING)
+@click.option(
+    '--exclude-expression', type=click.STRING,
+    help='Additional expression to exclude pages from deletion'
+)
+@click.option(
+    '--first-page', type=click.STRING,
+    help='First page to delete'
+)
+@click.option(
+    '--first-page-namespace', type=click.INT,
+    help='Namespace of first page to delete'
+)
+@click.option(
+    '--reason', default='Mass deletion', type=click.STRING,
+    help='Deletion reason'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def delete_pages(
+    ctx: click.Context, filter_expression: str, api_url: str,
+    exclude_expression: str,
+    first_page: Optional[str], first_page_namespace: Optional[int],
+    reason: str, api_limit: int
+):
+    """Delete pages matching regular expression."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    namespaces: List[int] = [6]  # TODO
+    # namespaces = api.get_namespace_list()  # TODO
+    if first_page_namespace is not None:
+        namespaces = namespaces[namespaces.index(first_page_namespace):]
+
+    compiled_filter_expression = re.compile(filter_expression)
+
+    compiled_exclude_expression = None
+    if exclude_expression is not None:
+        compiled_exclude_expression = re.compile(exclude_expression)
+
+    deleted_num: int = 0
+    failed_num: int = 0
+
+    for namespace in namespaces:
+        for page_name in filter(
+            lambda page_name:
+            compiled_filter_expression.match(page_name) is not None,
+            api.get_page_list(
+                namespace, api_limit, first_page=first_page
+            )
+        ):
+            if compiled_exclude_expression is not None:
+                if compiled_exclude_expression.match(page_name):
+                    continue
+            try:
+                api.delete_page(page_name, reason)
+                click.echo('Deleted {}'.format(page_name))
+                deleted_num += 1
+            except mediawiki.CanNotDelete:
+                click.echo('Can not delete {}'.format(page_name))
+                failed_num += 1
+
+    click.echo('{} pages deleted.'.format(deleted_num))
+    if failed_num > 0:
+        click.echo('{} pages not deleted.'.format(deleted_num))
+
+
+@click.command()
+@click.pass_context
+@click.argument(
+    'filter_expression', type=click.STRING
+)
+@click.argument(
+    'new_text', type=click.STRING
+)
+@click.argument('api_url', type=click.STRING)
+@click.option(
+    '--exclude-expression', type=click.STRING,
+    help='Additional expression to exclude pages from editing'
+)
+@click.option(
+    '--first-page', type=click.STRING,
+    help='First page to edit'
+)
+@click.option(
+    '--first-page-namespace', type=click.INT,
+    help='Namespace of first page to edit'
+)
+@click.option(
+    '--reason', default='Mass edit', type=click.STRING,
+    help='Edit reason'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def edit_pages(
+    ctx: click.Context, filter_expression: str, new_text: str,
+    api_url: str, exclude_expression: str,
+    first_page: Optional[str], first_page_namespace: Optional[int],
+    reason: str, api_limit: int
+):
+    """Edit pages matching filter expression, using new text."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    namespaces: List[int] = [0, 100, 112]  # TODO
+    if first_page_namespace is not None:
+        namespaces = namespaces[namespaces.index(first_page_namespace):]
+
+    compiled_filter_expression = re.compile(filter_expression)
+    exclude_filter_expression = None
+    if exclude_expression is not None:
+        exclude_filter_expression = re.compile(exclude_expression)
+
+    edited_num: int = 0
+
+    for namespace in namespaces:
+        for page_name in filter(
+            lambda page_name:
+            compiled_filter_expression.match(page_name) is not None,
+            api.get_page_list(
+                namespace, api_limit, redirect_filter_mode='nonredirects',
+                first_page=first_page
+            )
+        ):
+            if exclude_filter_expression is not None:
+                if exclude_filter_expression.match(page_name):
+                    continue
+            api.edit_page(page_name, new_text, reason)
+            click.echo('Edited {}'.format(page_name))
+            edited_num += 1
+
+    click.echo('{} pages edited.'.format(edited_num))
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument('old', type=click.STRING)
+@click.argument('new', type=click.STRING)
+@click.option(
+    '--reason', default='Mass interwiki fix', type=click.STRING,
+    help='Edit reason'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def edit_pages_clone_interwikis(
+    ctx: click.Context, api_url: str, old: str, new: str,
+    reason: str, api_limit: int,
+):
+    """Add interwiki NEW to pages that contain interwiki OLD but not NEW."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    search_request = old
+
+    expr_old = re.compile(
+        r'(^.*\[\[' + old + r'\:(.+?)\]\])',
+        flags=re.MULTILINE | re.DOTALL
+    )
+    expr_new = re.compile(
+        r'^.*\[\[' + new + r'\:(.+?)\]\]',
+        flags=re.MULTILINE | re.DOTALL
+    )
+
+    edited_num: int = 0
+
+    for namespace in api.get_namespace_list():
+        for page_name in api.search_pages(
+            search_request, namespace, api_limit
+        ):
+            text = api.get_page(page_name)
+            regex_new_result = expr_new.match(text)
+            if regex_new_result is not None:
+                continue
+            regex_old_result = expr_old.match(text)
+            if regex_old_result is None:
+                continue
+            new_text = expr_old.sub(r'\1\n[[{}:\2]]'.format(new), text)
+            api.edit_page(page_name, new_text, reason)
+            click.echo('Edited {}'.format(page_name))
+            edited_num += 1
+
+    click.echo('{} pages edited.'.format(edited_num))
+
+
+@click.command()
+@click.pass_context
+@click.argument('list_file', type=click.File('rt'))
+@click.argument(
+    'download_dir', type=click.Path(file_okay=False, dir_okay=True)
+)
+def download_images(ctx: click.Context, list_file: IO, download_dir):
+    """Download images listed in file."""
+    with click.progressbar(list(read_image_list(list_file))) as bar:
+        for image in bar:
+            r = requests.get(image['url'], stream=True)
+            if r.status_code == 200:
+                image_filename = os.path.join(download_dir, image['name'])
+                with open(image_filename, 'wb') as image_file:
+                    r.raw.decode_content = True
+                    shutil.copyfileobj(r.raw, image_file)
+            elif r.status_code != 404:
+                click.echo(
+                    'Falied to download URL {} (status code: {}).'.format(
+                        r.url, r.status_code
+                    )
+                )
+
+
+cli.add_command(list_images)
+cli.add_command(list_pages)
+cli.add_command(list_namespace_pages)
+cli.add_command(list_deletedrevs)
+cli.add_command(download_images)
+cli.add_command(delete_pages)
+cli.add_command(edit_pages)
+cli.add_command(edit_pages_clone_interwikis)
+
+
+if __name__ == '__main__':
+    # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
+    cli(obj={})
