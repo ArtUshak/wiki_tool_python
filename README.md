@@ -327,7 +327,7 @@ pipenv run python wikitool.py download-images ../absurdopedia/image.txt ../absur
 ## Special thanks
 
 *   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
-*   [Python](http://www.python.org/) developers.
+*   [Python](https://www.python.org/) developers.
 *   [requests](https://3.python-requests.org/) developers.
 *   [Click](https://click.palletsprojects.com) developers.
 *   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
