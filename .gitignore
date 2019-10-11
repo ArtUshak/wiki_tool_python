@@ -91,5 +91,5 @@ ENV/
 # MyPy cache
 .mypy_cache/
 
-# VSCode settings
-.vscode/
+# Poetry virtual environment
+.venv

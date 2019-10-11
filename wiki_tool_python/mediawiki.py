@@ -1,6 +1,7 @@
 """MediaWiki API interaction functions."""
-from typing import List, Iterable, Iterator, Dict, Any, Optional
 from abc import ABC, abstractmethod
+import datetime
+from typing import List, Iterable, Iterator, Dict, Any, Optional
 
 import click
 import requests
@@ -24,6 +25,19 @@ class MediaWikiAPI(ABC):
     @abstractmethod
     def get_namespace_list(self) -> Iterable[int]:
         """Get iterable of all namespaces in wiki."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_user_contributions_list(
+        self, namespace: int, limit: int, user: str,
+        start_date: datetime.datetime, end_date: datetime.datetime,
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Iterate over user edits.
+
+        Iterate over all edits made by `user in `namespace` since `start_date`
+        until `end_date`.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -128,6 +142,60 @@ class MediaWikiAPI1_19(MediaWikiAPI):
                 )
             )
         )
+
+    def get_user_contributions_list(
+        self, namespace: int, limit: int, user: str,
+        start_date: datetime.datetime, end_date: datetime.datetime,
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Iterate over user edits.
+
+        Iterate over all edits made by `user in `namespace` since `start_date`
+        until `end_date`.
+        """
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'list': 'usercontribs',
+            'uclimit': limit,
+            'ucnamespace': namespace,
+            'ucuser': user.replace(' ', '_'),
+            'ucdir': 'newer',
+            'format': 'json',
+        }
+        if start_date is not None:
+            params['ucstart'] = int(start_date.timestamp())
+        if end_date is not None:
+            params['ucend'] = int(end_date.timestamp())
+        last_continue: Dict[str, Any] = {}
+
+        r = self.session.get(self.api_url, params=params)
+        if r.status_code != 200:
+            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+
+        data = r.json()
+        if 'error' in data:
+            raise MediaWikiAPIError(data['error'])
+
+        while True:
+            current_params = params.copy()
+            current_params.update(last_continue)
+            r = self.session.get(self.api_url, params=current_params)
+            if r.status_code != 200:
+                raise MediaWikiAPIError(
+                    'Status code is {}'.format(r.status_code)
+                )
+
+            data = r.json()
+            if 'error' in data:
+                raise MediaWikiAPIError(data['error'])
+            user_contribs = data['query']['usercontribs']
+
+            for user_contrib in user_contribs:
+                yield user_contrib
+
+            if 'query-continue' not in data:
+                break
+            last_continue = data['query-continue']['usercontribs']
 
     def get_image_list(self, limit: int) -> Iterator[Dict[str, str]]:
         """
@@ -432,6 +500,60 @@ class MediaWikiAPI1_31(MediaWikiAPI):
                 )
             )
         )
+
+    def get_user_contributions_list(
+        self, namespace: int, limit: int, user: str,
+        start_date: datetime.datetime, end_date: datetime.datetime,
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Iterate over user edits.
+
+        Iterate over all edits made by `user in `namespace` since `start_date`
+        until `end_date`.
+        """
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'list': 'usercontribs',
+            'uclimit': limit,
+            'ucnamespace': namespace,
+            'ucuser': user.replace(' ', '_'),
+            'ucdir': 'newer',
+            'format': 'json',
+        }
+        if start_date is not None:
+            params['ucstart'] = int(start_date.timestamp())
+        if end_date is not None:
+            params['ucend'] = int(end_date.timestamp())
+        last_continue: Dict[str, Any] = {}
+
+        r = self.session.get(self.api_url, params=params)
+        if r.status_code != 200:
+            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+
+        data = r.json()
+        if 'error' in data:
+            raise MediaWikiAPIError(data['error'])
+
+        while True:
+            current_params = params.copy()
+            current_params.update(last_continue)
+            r = self.session.get(self.api_url, params=current_params)
+            if r.status_code != 200:
+                raise MediaWikiAPIError(
+                    'Status code is {}'.format(r.status_code)
+                )
+
+            data = r.json()
+            if 'error' in data:
+                raise MediaWikiAPIError(data['error'])
+            user_contribs = data['query']['usercontribs']
+
+            for user_contrib in user_contribs:
+                yield user_contrib
+
+            if 'query-continue' not in data:
+                break
+            last_continue = data['query-continue']['usercontribs']
 
     def get_image_list(self, limit: int) -> Iterator[Dict[str, str]]:
         """

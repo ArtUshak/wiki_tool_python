@@ -7,14 +7,4 @@
 			"path": "../data"
 		}
 	],
-	"settings": {
-		"python.linting.pep8Path": "pycodestyle",
-		"python.linting.pep8Enabled": true,
-		"python.linting.pydocstyleEnabled": true,
-		"python.linting.pylintCategorySeverity.convention": "Warning",
-		"python.linting.pylintCategorySeverity.refactor": "Hint",
-		"python.linting.pylintEnabled": true,
-		"python.linting.flake8Enabled": true,
-		"python.linting.mypyEnabled": true
-	}
 }

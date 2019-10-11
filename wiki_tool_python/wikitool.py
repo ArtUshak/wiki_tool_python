@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Script for interacting with MediaWiki."""
+import copy
+import datetime
 import json
 import os
 import re
@@ -461,6 +463,132 @@ def download_images(ctx: click.Context, list_file: IO, download_dir):
                 )
 
 
+def read_user_data(input_file: IO) -> List[str]:
+    """Read user list from text file."""
+    users = map(lambda s: s.strip(), input_file.readlines())
+    return list(users)
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument('user_list_file', type=click.File('rt'))
+@click.option('--namespacefile', default='namespaces.json',
+              type=click.File('rt'),
+              help='JSON file to read namespaces data from')
+@click.option('--start',
+              type=click.DateTime(),
+              help='Start date for counting edits')
+@click.option('--end',
+              type=click.DateTime(),
+              help='End date for counting edits')
+@click.option('--output-format', default='mediawiki',
+              type=click.Choice(['txt', 'mediawiki', 'json']),
+              help='Output data format')
+@click.option('--redirect-regex-text',
+              default=r'^Перенаправление на \[\[.+\]\]$', type=click.STRING,
+              help='Regular expression to detect redirect creation')
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def votecount(
+    ctx: click.Context, api_url: str, user_list_file: IO, namespacefile: IO,
+    start: datetime.datetime, end: datetime.datetime, output_format: str,
+    api_limit: int, redirect_regex_text: str,
+):
+    """Get edit counts for users from input file, and calculate vote power."""
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+
+    regex_redirect = re.compile(redirect_regex_text)
+
+    users = read_user_data(user_list_file)
+
+    namespaces_raw = json.load(namespacefile)
+    if not isinstance(namespaces_raw, dict):
+        raise ValueError()
+    namespaces_edit_weights = namespaces_raw['edit_weights']
+    namespaces_edit_weights = dict(
+        map(lambda key: (int(key), namespaces_edit_weights[key]),
+            namespaces_edit_weights))
+    namespaces_page_weights = namespaces_raw['page_weights']
+    namespaces_page_weights = dict(
+        map(lambda key: (int(key), namespaces_page_weights[key]),
+            namespaces_page_weights))
+
+    users_data: Dict[str, Dict[str, Any]] = dict()
+    for user in users:
+        click.echo('Processing user {}...'.format(user))
+        user_vote_power: float = 0.0
+        user_new_pages: int = 0
+        user_data: Dict[str, Any] = dict()
+
+        for namespace in namespaces_edit_weights:
+            pages_count = 0
+            edit_count = 0
+
+            for contrib in api.get_user_contributions_list(
+                namespace, api_limit, user, start, end
+            ):
+                edit_count += 1
+                if (('new' in contrib)
+                        and (regex_redirect.match(contrib['comment'])
+                             is None)):
+                    pages_count += 1
+
+            user_data[namespace] = edit_count
+
+            user_vote_power += (edit_count
+                                * namespaces_edit_weights[namespace])
+
+            if namespace in namespaces_page_weights:
+                user_new_pages += pages_count
+                user_vote_power += (pages_count
+                                    * namespaces_page_weights[namespace])
+
+        user_data['NewPages'] = user_new_pages
+        user_data['VotePower'] = user_vote_power
+        users_data[user] = copy.copy(user_data)
+
+    if format == 'txt':
+        for user in users_data:
+            click.echo('User {}'.format(user))
+            for key in user_data:
+                click.echo('{}: {}'.format(key, user_data[key]))
+            click.echo('')
+    elif output_format == 'json':
+        click.echo(json.dumps(users_data))
+    elif output_format == 'mediawiki':
+        click.echo('{| class="wikitable"')
+        click.echo(' ! Участник')
+        for namespace in namespaces_edit_weights:
+            click.echo(' ! N{}'.format(namespace))
+        click.echo(' ! A')
+        click.echo(' ! Сила голоса (автоматическая)')
+        click.echo(' ! Сила голоса (итоговая)')
+        for user in users_data:
+            click.echo(' |-')
+            click.echo(' | {{{{ U|{} }}}}'.format(user))
+            for key in namespaces_edit_weights:
+                click.echo(' | style="text-align: right;" | {}'.format(
+                    users_data[user][key]))
+            click.echo(' | style="text-align: right;" | {}'.format(
+                users_data[user]['NewPages']))
+            click.echo(' | style="text-align: right;" | {:.4}'.format(
+                users_data[user]['VotePower']))
+            click.echo(' | style="text-align: right;" | ?')
+        click.echo(' |}')
+    else:
+        for user in users_data:
+            click.echo('User {}'.format(user))
+            for key in namespaces_edit_weights:
+                click.echo('N{}: {}'.format(key, users_data[user][key]))
+            click.echo('NewPages: {}'.format(users_data[user]['NewPages']))
+            click.echo(
+                'VotePower: {:.4}'.format(users_data[user]['VotePower']))
+            click.echo('')
+
+
 cli.add_command(list_images)
 cli.add_command(list_pages)
 cli.add_command(list_namespace_pages)
@@ -469,6 +597,7 @@ cli.add_command(download_images)
 cli.add_command(delete_pages)
 cli.add_command(edit_pages)
 cli.add_command(edit_pages_clone_interwikis)
+cli.add_command(votecount)
 
 
 if __name__ == '__main__':

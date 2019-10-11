@@ -4,32 +4,26 @@ Script to perform various tasks with from sites (wikiprojects) on [MediaWiki](ht
 
 ## Installation
 
-Install Python 3.7, install `pipenv`, run `pipenv update`.
+Install Python 3.7, install `poetry`, run `poetry install --no-dev`.
 
 Then you can just run `pipenv run COMMAND` to run specific commands under pipenv.
 
 Or you can enter pipenv shell (by running `pipenv shell`) and then type script commands.
 
-### Example
+### Installation example
 
-Assuming python 3.7 is installed and you.
+Assuming python 3.7 and poetry are installed.
 
-Installing `pipenv` (if you do not have it) via `pip` (there are also some other ways of pipenv installation):
-
-```sh
-pip3 install --user pipenv
-```
-
-Initialising and updating virtual environment (assuming you are in the folder with this script):
+Initialising and updating virtual environment (assuming you are in the folder with this README file):
 
 ```sh
-pipenv update
+poetry install --no-dev
 ```
 
 Running script:
 
 ```sh
-pipenv run python wikitool.py --help
+poetry run python wiki_tool_python/wikitool.py --help
 ```
 
 ## Usage
@@ -48,11 +42,11 @@ To select MediaWiki version, use option `--mediawiki-version VERSION`. Versions 
 
 ### MediaWiki API URL
 
-Parameter `API_URL` should be URL of MediaWiki API without `/api.php`, for example https://wow.gamepedia.com or https://absurdopedia.wiki/w.
+Parameter `API_URL` should be URL of MediaWiki API without `/api.php`, for example [https://wow.gamepedia.com](https://wow.gamepedia.com) or [https://absurdopedia.wiki/w](https://absurdopedia.wiki/w).
 
 ### Command `list-images`
 
-`python wikitool.py list-images [OPTIONS] API_URL`
+`python wiki_tool_python/wikitool.py list-images [OPTIONS] API_URL`
 
 List wikiproject images (titles and URLs).
 
@@ -75,7 +69,7 @@ The same format is used by `download-images` command.
 #### Command `list-images`: example
 
 ```sh
-TODO list-images https://wow.gamepedia.com
+python wiki_tool_python/wikitool.py list-images https://wow.gamepedia.com
 ```
 
 Output:
@@ -92,7 +86,7 @@ https://gamepedia.cursecdn.com/wowpedia/1/1c/%282%29TheTwoRivers.jpg
 
 ### Command `list-pages`
 
-`python wikitool.py list-pages [OPTIONS] API_URL`
+`python wiki_tool_python/wikitool.py list-pages [OPTIONS] API_URL`
 
 List wikiproject page names of all wikiproject namespaces.
 
@@ -109,7 +103,7 @@ Each page name is written on separate line.
 #### Command `list-pages`: example
 
 ```sh
-python wikitool.py list-pages https://wow.gamepedia.com
+python wiki_tool_python/wikitool.py list-pages https://wow.gamepedia.com
 ```
 
 Output:
@@ -133,7 +127,7 @@ Talk:Alchemy trainers)
 
 ### Command `list-namespace-pages`
 
-`python wikitool.py list-namespace-pages [OPTIONS] API_URL NAMESPACE`
+`python wiki_tool_python/wikitool.py list-namespace-pages [OPTIONS] API_URL NAMESPACE`
 
 List wikiproject page names of namespace (`NAMESPACE` should be integer ID of namespace).
 
@@ -150,7 +144,7 @@ Each page name is written on separate line.
 #### Command `list-namespace-pages`: example
 
 ```sh
-python wikitool.py list-namespace-pages https://wow.gamepedia.com 1
+python wiki_tool_python/wikitool.py list-namespace-pages https://wow.gamepedia.com 1
 ```
 
 Output:
@@ -177,7 +171,7 @@ Talk:1st Legion
 
 ### Command `list-deletedrevs`
 
-`python wikitool.py list-deletedrevs [OPTIONS] OUTPUT_DIRECTORY API_URL`
+`python wiki_tool_python/wikitool.py list-deletedrevs [OPTIONS] OUTPUT_DIRECTORY API_URL`
 
 List delted revisions from wikiproject in JSON format, output may be splitted to many JSON files, files are saved to `OUTPUT_DIRECTORY`.
 
@@ -195,7 +189,7 @@ List delted revisions from wikiproject in JSON format, output may be splitted to
 
 ### Command `delete-pages`
 
-`python wikitool.py delete-pages [OPTIONS] FILTER_EXPRESSION API_URL`
+`python wiki_tool_python/wikitool.py delete-pages [OPTIONS] FILTER_EXPRESSION API_URL`
 
 Delete pages matching regular expression `FILTER_EXPRESSION`.
 
@@ -219,7 +213,7 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 ### Command `edit-pages`
 
-`python wikitool.py edit-pages [OPTIONS] FILTER_EXPRESSION NEW_TEXT API_URL`
+`python wiki_tool_python/wikitool.py edit-pages [OPTIONS] FILTER_EXPRESSION NEW_TEXT API_URL`
 
 Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their content with new text `NEW_TEXT`.
 
@@ -243,7 +237,7 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 
 ### Command `edit-pages-clone-interwikis`
 
-`python wikitool.py edit-pages-clone-interwikis [OPTIONS] API_URL OLD NEW`
+`python wiki_tool_python/wikitool.py edit-pages-clone-interwikis [OPTIONS] API_URL OLD NEW`
 
 Add interwiki `NEW` to pages that contain interwiki `OLD`, but do not contain interwiki `NEW` yet.
 
@@ -280,7 +274,7 @@ This command may be used, for example, if your wiki contains another language ve
 
 ### Command `download-images`
 
-`python wikitool.py download-images [OPTIONS] LIST_FILE DOWNLOAD_DIR`
+`python wiki_tool_python/wikitool.py download-images [OPTIONS] LIST_FILE DOWNLOAD_DIR`
 
 Download images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) to directory `DOWNLOAD_DIR`.
 
@@ -297,7 +291,7 @@ No specific options.
 #### Command `download-images`: example
 
 ```sh
-python wikitool.py download-images images.txt wiki_images
+python wiki_tool_python/wikitool.py download-images images.txt wiki_images
 ```
 
 Where `images.txt` is list of images.
@@ -308,28 +302,143 @@ Progress bar is displayed.
 
 Images are downloaded to directory `wiki_images`.
 
+### Command `votecount`
+
+`python wiki_tool_python/wikitool.py votecount [OPTIONS] API_URL USER_LIST_FILE`
+
+Get user edit count for users from file `USER_LIST_FILE` and calculate vote power (according to [Wikireality rules](http://wikireality.ru/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D1%80%D0%B5%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D1%81%D1%82%D1%8C:%D0%9A#4.4._.D0.92.D0.B5.D1.81_.D0.B3.D0.BE.D0.BB.D0.BE.D1.81.D0.B0)).
+
+#### Command `votecount`: options
+
+`--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
+
+`--namespacefile FILENAME` JSON file to read namespaces data from.
+
+`--start [%Y-%m-%d|%Y-%m-%dT%H:%M:%S|%Y-%m-%d %H:%M:%S]` Start date for counting edits.
+
+`--end [%Y-%m-%d|%Y-%m-%dT%H:%M:%S|%Y-%m-%d %H:%M:%S]` End date for counting edits.
+
+`--output-format [txt|mediawiki|json]` Output data format (text, MediaWiki table or JSON).
+
+`--redirect-regex-text TEXT` Regular expression to detect redirect creation.
+
+#### Command `votecount`: example
+
+Namespace file `namespaces.json` is:
+
+```json
+{
+    "edit_weights": {
+        "0": 0.04,
+        "1": 0.003,
+        "4": 0.015,
+        "5": 0.003,
+        "6": 0.03,
+        "7": 0.003,
+        "8": 0.015,
+        "9": 0.003,
+        "10": 0.015,
+        "11": 0.003,
+        "14": 0.015,
+        "15": 0.003
+    },
+    "page_weights": {
+        "0": 0.6
+    }
+}
+```
+
+User list file `../data/votecount/voters.txt` is:
+
+```txt
+Arbnos
+Arsenal
+Cat1987
+```
+
+```sh
+python wiki_tool_python/wikitool.py --mediawiki-version 1.19 votecount --start 2018-07-12 --end 2018-10-12 --namespacefile ../data/votecount/namespaces.json --output-format txt http://wikireality.ru/w ../data/votecount/voters.txt
+```
+
+Output:
+
+```text
+Processing user Arbnos...
+Processing user Arsenal...
+Processing user Cat1987...
+User Arbnos
+N0: 0
+N1: 0
+N4: 0
+N5: 0
+N6: 0
+N7: 0
+N8: 0
+N9: 0
+N10: 0
+N11: 0
+N14: 0
+N15: 0
+NewPages: 0
+VotePower: 0.0
+
+User Arsenal
+N0: 20
+N1: 0
+N4: 9
+N5: 0
+N6: 0
+N7: 0
+N8: 0
+N9: 0
+N10: 2
+N11: 0
+N14: 0
+N15: 0
+NewPages: 2
+VotePower: 2.165
+
+User Cat1987
+N0: 30
+N1: 0
+N4: 1
+N5: 0
+N6: 3
+N7: 0
+N8: 1
+N9: 0
+N10: 0
+N11: 0
+N14: 0
+N15: 0
+NewPages: 0
+VotePower: 1.32
+```
+
+*...*
+
 ## Example
 
-```
-pip3.7 install --user pipenv
-pipenv update
+```sh
+poetry install --no-dev
 mkdir ../absurdopedia
 mkdir ../absurdopedia/download
-pipenv run python wikitool.py list-images --output-file ../absrudopedia/image.txt https://absurdopedia.wiki/w
-pipenv run python wikitool.py download-images ../absurdopedia/image.txt ../absurdopedia/download
+poetry run python wiki_tool_python/wikitool.py list-images --output-file ../absrudopedia/image.txt https://absurdopedia.wiki/w
+poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/image.txt ../absurdopedia/download
 ```
 
 ## Files
 
-*    `mediawiki.py` contains exceptions and classes to interact with MediaWiki API. Abstract base class is named `MediaWikiAPI`, implementations for specific MediaWiki versions are derived from it.
-*    `wikitool.py` contains commands described in this file. To parse them, [Click](https://click.palletsprojects.com) is used.
+* `mediawiki.py` contains exceptions and classes to interact with MediaWiki API. Abstract base class is named `MediaWikiAPI`, implementations for specific MediaWiki versions are derived from it.
+* `wikitool.py` contains commands described in this file. To parse them, [Click](https://click.palletsprojects.com) is used.
 
 ## Special thanks
 
-*   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
-*   [Python](https://www.python.org/) developers.
-*   [requests](https://3.python-requests.org/) developers.
-*   [Click](https://click.palletsprojects.com) developers.
-*   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
-*   Other guys from Absurdopedia, russian version of Uncyclopedia (https://absurdopedia.wiki and https://absurdopedia.net)
-*   Other cool guys.
+* [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
+* [Python](https://www.python.org/) developers.
+* [requests](https://3.python-requests.org/) developers.
+* [Click](https://click.palletsprojects.com) developers.
+* Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
+* [Wikireality](http://wikireality.ru) users, especially members of Dimetr's Telegram chat.
+* Other guys from Absurdopedia, russian version of Uncyclopedia ([absurdopedia.wiki](https://absurdopedia.wiki/) and [absurdopedia.net](https://absurdopedia.net/))
+* Other cool guys.

@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "wiki_tool_python"
+version = "0.1.0"
+description = "Script to perform tasks with websites on MediaWiki engine using API"
+authors = ["Artiom Khandamirov <t9max@yandex.ru>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+requests = "^2.22"
+Click = "^7.0"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.4"
+pycodestyle = "^2.5"
+pydocstyle = "^4.0"
+flake8 = "^3.7"
+autopep8 = "^1.4"
+mypy = "^0.730"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

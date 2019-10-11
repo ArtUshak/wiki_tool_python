@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "update",
+            "type": "shell",
+            "command": "poetry update",
+            "problemMatcher": []
+        },
+        {
+            "label": "list-images",
+            "type": "shell",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-images --output-file ../Wiki-ExportFiles-data/images.txt https://absurdopedia.fandom.com",
+            "problemMatcher": []
+        },
+        {
+            "label": "list-pages",
+            "type": "shell",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-pages --output-file ../Wiki-ExportFiles-data/pages.txt https://absurdopedia.fandom.com",
+            "problemMatcher": []
+        },
+        {
+            "label": "list-deletedrevs",
+            "type": "shell",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-deletedrevs ../Wiki-ExportFiles-data/deletedrevs https://absurdopedia.fandom.com",
+            "problemMatcher": []
+        },
+        {
+            "label": "votecount",
+            "type": "shell",
+            "command": "poetry run python wiki_tool_python/wikitool.py --mediawiki-version 1.19 votecount --start 2018-07-12 --end 2018-10-12 --namespacefile ../data/votecount/namespaces.json http://wikireality.ru/w ../data/votecount/voters.txt > ../data/votecount/output.txt",
+            "problemMatcher": [],
+        }
+    ]
+}

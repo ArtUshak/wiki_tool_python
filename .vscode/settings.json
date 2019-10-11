@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": ".venv/bin/python",
+    "python.linting.pydocstyleEnabled": true,
+    "python.linting.pylintCategorySeverity.convention": "Warning",
+    "python.linting.pylintCategorySeverity.refactor": "Hint",
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true
+}
