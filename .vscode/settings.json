@@ -8,7 +8,8 @@
     "python.linting.mypyEnabled": true,
     "markdownlint.config": {
         "MD030": {
-            "ul_single": 3
+            "ul_single": 3,
+            "ol_single": 3
         }
     }
 }

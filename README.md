@@ -52,9 +52,9 @@ List wikiproject images (titles and URLs).
 
 For each image three lines are printed:
 
-1. Word `FILE`.
-2. Image name on wikiproject (including namespace, for example `File:Ogyglo.png`).
-3. Image URL on wikiproject.
+1.   Word `FILE`.
+2.   Image name on wikiproject (including namespace, for example `File:Ogyglo.png`).
+3.   Image URL on wikiproject.
 
 The same format is used by `download-images` command.
 
