@@ -477,10 +477,10 @@ def read_user_data(input_file: IO) -> List[str]:
               type=click.File('rt'),
               help='JSON file to read namespaces data from')
 @click.option('--start',
-              type=click.DateTime(),
+              type=click.DateTime(),  # type: ignore
               help='Start date for counting edits')
 @click.option('--end',
-              type=click.DateTime(),
+              type=click.DateTime(),  # type: ignore
               help='End date for counting edits')
 @click.option('--output-format', default='mediawiki',
               type=click.Choice(['txt', 'mediawiki', 'json']),

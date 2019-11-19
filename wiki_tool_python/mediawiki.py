@@ -10,13 +10,9 @@ import requests
 class MediaWikiAPIError(click.ClickException):
     """MediaWiki API error."""
 
-    pass
-
 
 class CanNotDelete(MediaWikiAPIError):
     """Page can not be deleted."""
-
-    pass
 
 
 class MediaWikiAPI(ABC):
