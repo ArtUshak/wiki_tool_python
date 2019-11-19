@@ -29,7 +29,7 @@
             "label": "votecount",
             "type": "shell",
             "command": "poetry run python wiki_tool_python/wikitool.py --mediawiki-version 1.19 votecount --start 2018-07-12 --end 2018-10-12 --namespacefile ../data/votecount/namespaces.json http://wikireality.ru/w ../data/votecount/voters.txt > ../data/votecount/output.txt",
-            "problemMatcher": [],
+            "problemMatcher": []
         }
     ]
 }

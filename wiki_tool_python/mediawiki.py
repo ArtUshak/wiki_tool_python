@@ -137,7 +137,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             filter(
                 lambda namespace_id: namespace_id >= 0,
                 map(
-                    lambda namespace: int(namespace),
+                    int,
                     namespaces.keys()
                 )
             )
@@ -495,7 +495,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             filter(
                 lambda namespace_id: namespace_id >= 0,
                 map(
-                    lambda namespace: int(namespace),
+                    int,
                     namespaces.keys()
                 )
             )
