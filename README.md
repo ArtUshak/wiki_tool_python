@@ -429,16 +429,16 @@ poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/i
 
 ## Files
 
-* `mediawiki.py` contains exceptions and classes to interact with MediaWiki API. Abstract base class is named `MediaWikiAPI`, implementations for specific MediaWiki versions are derived from it.
-* `wikitool.py` contains commands described in this file. To parse them, [Click](https://click.palletsprojects.com) is used.
+*   `mediawiki.py` contains exceptions and classes to interact with MediaWiki API. Abstract base class is named `MediaWikiAPI`, implementations for specific MediaWiki versions are derived from it.
+*   `wikitool.py` contains commands described in this file. To parse them, [Click](https://click.palletsprojects.com) is used.
 
 ## Special thanks
 
-* [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
-* [Python](https://www.python.org/) developers.
-* [requests](https://3.python-requests.org/) developers.
-* [Click](https://click.palletsprojects.com) developers.
-* Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
-* [Wikireality](http://wikireality.ru) users, especially members of Dimetr's Telegram chat.
-* Other guys from Absurdopedia, russian version of Uncyclopedia ([absurdopedia.wiki](https://absurdopedia.wiki/) and [absurdopedia.net](https://absurdopedia.net/))
-* Other cool guys.
+*   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
+*   [Python](https://www.python.org/) developers.
+*   [requests](https://3.python-requests.org/) developers.
+*   [Click](https://click.palletsprojects.com) developers.
+*   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
+*   [Wikireality](http://wikireality.ru) users, especially members of Dimetr's Telegram chat.
+*   Other guys from Absurdopedia, russian version of Uncyclopedia ([absurdopedia.wiki](https://absurdopedia.wiki/) and [absurdopedia.net](https://absurdopedia.net/))
+*   Other cool guys.

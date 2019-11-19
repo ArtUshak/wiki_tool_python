@@ -5,5 +5,10 @@
     "python.linting.pylintCategorySeverity.refactor": "Hint",
     "python.linting.pylintEnabled": true,
     "python.linting.flake8Enabled": true,
-    "python.linting.mypyEnabled": true
+    "python.linting.mypyEnabled": true,
+    "markdownlint.config": {
+        "MD030": {
+            "ul_single": 3
+        }
+    }
 }
