@@ -4,7 +4,7 @@ Script to perform various tasks with from sites (wikiprojects) on [MediaWiki](ht
 
 ## Installation
 
-Install Python 3.7, install `poetry`, run `poetry install --no-dev`.
+Install Python 3.7 or higher, install `poetry`, run `poetry install --no-dev`.
 
 Then you can just run `pipenv run COMMAND` to run specific commands under pipenv.
 
@@ -12,19 +12,33 @@ Or you can enter pipenv shell (by running `pipenv shell`) and then type script c
 
 ### Installation example
 
-Assuming python 3.7 and poetry are installed.
+Assuming Python 3.7 or higher and poetry are installed.
 
-Initialising and updating virtual environment (assuming you are in the folder with this README file):
+Initialise and update virtual environment (assuming you are in the folder with this README file):
 
 ```sh
 poetry install --no-dev
 ```
 
-Running script:
+Run script:
 
 ```sh
 poetry run python wiki_tool_python/wikitool.py --help
 ```
+
+### Windows installation example
+
+Assuming Python 3.7 or higher is installed.
+
+Install poetry (in Windows PowerShell):
+
+```ps1
+(Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python
+```
+
+To install or update libraries, run batch file `update.bat`.
+
+To run script to download images, run batch file `download_images.bat` and input URL, or run batch file with URL as first param, for example: `download_images.bat https:\\absurdopedia.wiki\w`.
 
 ## Usage
 
