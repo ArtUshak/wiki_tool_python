@@ -1,14 +1,14 @@
 # wikit_tool_python
 
-Script to perform various tasks with from sites (wikiprojects) on [MediaWiki](https://www.mediawiki.org/) engine using MediaWiki API.
+Script to perform various tasks with websites (wikiprojects) on [MediaWiki](https://www.mediawiki.org/) engine using MediaWiki API.
 
 ## Installation
 
-Install Python 3.7 or higher, install `poetry`, run `poetry install --no-dev`.
+Install Python 3.7 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
 
-Then you can just run `pipenv run COMMAND` to run specific commands under pipenv.
+Then you can just run `poetry run COMMAND` to run specific commands under python virtual environment created by poetry.
 
-Or you can enter pipenv shell (by running `pipenv shell`) and then type script commands.
+Or you can enter poetry shell (by running `poetry shell`) and then type script commands.
 
 ### Installation example
 
@@ -450,6 +450,7 @@ poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/i
 
 *   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
 *   [Python](https://www.python.org/) developers.
+*   [Poetry](https://python-poetry.org/) developers.
 *   [requests](https://3.python-requests.org/) developers.
 *   [Click](https://click.palletsprojects.com) developers.
 *   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).

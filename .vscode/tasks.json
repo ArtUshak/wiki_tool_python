@@ -8,6 +8,12 @@
             "problemMatcher": []
         },
         {
+            "label": "update1",
+            "type": "shell",
+            "command": "poetry lock && poetry install",
+            "problemMatcher": []
+        },
+        {
             "label": "list-images",
             "type": "shell",
             "command": "poetry run python wiki_tool_python/wikitool.py list-images --output-file ../Wiki-ExportFiles-data/images.txt https://absurdopedia.fandom.com",
