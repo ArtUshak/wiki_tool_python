@@ -3,7 +3,7 @@
 ) else (
  @set API_URL=%1
 )
-@if not exists .\data\download (
+@if not exist .\data\download (
  @mkdir .\data\download
 )
 call poetry run python wiki_tool_python\wikitool.py list-images --output-file .\data\images.txt %API_URL%
