@@ -1,4 +1,4 @@
-# wikit_tool_python
+# wiki_tool_python
 
 Script to perform various tasks with websites (wikiprojects) on [MediaWiki](https://www.mediawiki.org/) engine using MediaWiki API.
 
@@ -317,6 +317,54 @@ Output:
 Progress bar is displayed.
 
 Images are downloaded to directory `wiki_images`.
+
+### Command `upload-image`
+
+`python wiki_tool_python/wikitool.py upload-image [OPTIONS] FILE_NAME FILE API_URL`
+
+Upload image `FILE` to wiki with new name `FILE_NAME`.
+
+**Note**: this command requires authentication.
+
+#### Command `upload-image`: options
+
+No specific options.
+
+#### Command `upload-image`: example
+
+```sh
+python wiki_tool_python/wikitool.py upload-image Pic9231i9149i.png NVGogol.png https://absurdopedia.wiki/w
+```
+
+### Command `upload-images`
+
+`python wiki_tool_python/wikitool.py upload-images [OPTIONS] LIST_FILE DOWNLOAD_DIR API_URL`
+
+Upload images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) from directory `DOWNLOAD_DIR` to wiki.
+
+Each image is downloaded from URL given in file and saved to file with name given in file without namespace (for example, `File:Ogyglo.png` is saved as `Ogyglo.png`).
+
+**Note**: this command requires authentication.
+
+**Note**: progress bar is displayed.
+
+**Note**: if image can not be upload, warning is printed, but process is not stopped.
+
+#### Command `upload-images`: options
+
+No specific options.
+
+#### Command `upload-images`: example
+
+```sh
+python wiki_tool_python/wikitool.py upload-images images.txt wiki_images https://absurdopedia.wiki/w
+```
+
+Where `images.txt` is list of images.
+
+Output:
+
+Progress bar is displayed.
 
 ### Command `votecount`
 

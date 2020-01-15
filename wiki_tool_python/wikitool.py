@@ -3,10 +3,13 @@
 import copy
 import datetime
 import json
+import mimetypes
 import os
 import re
 import shutil
-from typing import List, Iterator, Dict, Any, IO, Optional, Tuple, Iterable
+from typing import (
+    List, Iterator, Dict, Any, TextIO, BinaryIO, Optional, Tuple, Iterable
+)
 
 import click
 import requests
@@ -14,7 +17,7 @@ import requests
 import mediawiki
 
 
-def read_image_list(image_list_file: IO) -> Iterator[Dict[str, str]]:
+def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
     """
     Iterate over image data listed in file `image_list_file`.
 
@@ -78,7 +81,7 @@ def get_mediawiki_api(
     if mediawiki_version == '1.31':
         return mediawiki.MediaWikiAPI1_31(api_url)
     if mediawiki_version == '1.19':
-        return mediawiki.MediaWikiAPI1_19(api_url)  # TODO
+        return mediawiki.MediaWikiAPI1_19(api_url)
     raise click.ClickException(
         'MediaWiki API version {} is not yet implemented'.format(
             mediawiki_version
@@ -98,7 +101,7 @@ def get_mediawiki_api(
     help='Maximum number of entries per API request'
 )
 def list_images(
-    ctx: click.Context, api_url: str, output_file: IO, api_limit: int
+    ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int
 ):
     """List images from wikiproject (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -121,7 +124,7 @@ def list_images(
     help='Maximum number of entries per API request'
 )
 def list_pages(
-    ctx: click.Context, api_url: str, output_file: IO, api_limit: int
+    ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int
 ):
     """List page names from wikiproject."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -148,7 +151,7 @@ def list_pages(
     help='Maximum number of entries per API request'
 )
 def list_namespace_pages(
-    ctx: click.Context, api_url: str, namespace: int, output_file: IO,
+    ctx: click.Context, api_url: str, namespace: int, output_file: TextIO,
     api_limit: int
 ):
     """List page names from wikiproject."""
@@ -445,7 +448,7 @@ def edit_pages_clone_interwikis(
 @click.argument(
     'download_dir', type=click.Path(file_okay=False, dir_okay=True)
 )
-def download_images(ctx: click.Context, list_file: IO, download_dir):
+def download_images(ctx: click.Context, list_file: TextIO, download_dir):
     """Download images listed in file."""
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
@@ -463,7 +466,66 @@ def download_images(ctx: click.Context, list_file: IO, download_dir):
                 )
 
 
-def read_user_data(input_file: IO) -> List[str]:
+@click.command()
+@click.pass_context
+@click.argument(
+    'file_name', type=click.STRING
+)
+@click.argument(
+    'file', type=click.File('rb')
+)
+@click.argument('api_url', type=click.STRING)
+def upload_image(
+    ctx: click.Context, file_name: str, file: BinaryIO, api_url: str,
+):
+    """Upload image."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    api.upload_file(
+        file_name, file, mimetypes.guess_type(file.name)[0]  # TODO
+    )
+
+
+@click.command()
+@click.pass_context
+@click.argument('list_file', type=click.File('rt'))
+@click.argument(
+    'download_dir', type=click.Path(file_okay=False, dir_okay=True)
+)
+@click.argument('api_url', type=click.STRING)
+def upload_images(
+    ctx: click.Context, list_file: TextIO, download_dir, api_url: str
+):
+    """Upload images listed in file."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    with click.progressbar(list(read_image_list(list_file))) as bar:
+        for image in bar:
+            image_name: str = image['name']
+            image_filename: str = os.path.join(download_dir, image_name)
+            with open(image_filename, 'rb') as image_file:
+                try:
+                    api.upload_file(
+                        image_name, image_file,
+                        mimetypes.guess_type(image_name)[0]
+                    )
+                except mediawiki.MediaWikiAPIError:
+                    click.echo(
+                        'Falied to upload file {}.'.format(image_name)
+                    )
+
+
+def read_user_data(input_file: TextIO) -> List[str]:
     """Read user list from text file."""
     users = map(lambda s: s.strip(), input_file.readlines())
     return list(users)
@@ -493,9 +555,9 @@ def read_user_data(input_file: IO) -> List[str]:
     help='Maximum number of entries per API request'
 )
 def votecount(
-    ctx: click.Context, api_url: str, user_list_file: IO, namespacefile: IO,
-    start: datetime.datetime, end: datetime.datetime, output_format: str,
-    api_limit: int, redirect_regex_text: str,
+    ctx: click.Context, api_url: str, user_list_file: TextIO,
+    namespacefile: TextIO, start: datetime.datetime, end: datetime.datetime,
+    output_format: str, api_limit: int, redirect_regex_text: str,
 ):
     """Get edit counts for users from input file, and calculate vote power."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -597,6 +659,8 @@ cli.add_command(download_images)
 cli.add_command(delete_pages)
 cli.add_command(edit_pages)
 cli.add_command(edit_pages_clone_interwikis)
+cli.add_command(upload_image)
+cli.add_command(upload_images)
 cli.add_command(votecount)
 
 

@@ -1,10 +1,11 @@
 """MediaWiki API interaction functions."""
 from abc import ABC, abstractmethod
 import datetime
-from typing import List, Iterable, Iterator, Dict, Any, Optional
+from typing import List, Iterable, Iterator, Dict, Any, Optional, BinaryIO
 
 import click
 import requests
+import requests_toolbelt
 
 
 class MediaWikiAPIError(click.ClickException):
@@ -72,6 +73,14 @@ class MediaWikiAPI(ABC):
         self, namespace: int, limit: int
     ) -> Iterator[Dict[str, Any]]:
         """Iterate over deleted revisions in wiki in `namespace`."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def upload_file(
+        self, file_name: str, file: BinaryIO, mime_type: Optional[str],
+        text: Optional[str] = None, ignore_warnings: bool = True
+    ) -> None:
+        """Upload file."""
         raise NotImplementedError()
 
     @abstractmethod
@@ -375,6 +384,13 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             raise MediaWikiAPIError(data['error'])
 
         return None
+
+    def upload_file(
+        self, file_name: str, file: BinaryIO, mime_type: Optional[str],
+        text: Optional[str] = None, ignore_warnings: bool = True
+    ) -> None:
+        """Upload file."""
+        raise NotImplementedError()
 
     def get_tokens(self, token_type: str, titles: str) -> Dict[str, str]:
         """Return page tokens for API."""
@@ -766,6 +782,44 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             params['summary'] = summary
 
         r = self.session.post(self.api_url, data=params)
+        if r.status_code != 200:
+            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+
+        data = r.json()
+        if 'error' in data:
+            raise MediaWikiAPIError(data['error'])
+
+        return None
+
+    def upload_file(
+        self, file_name: str, file: BinaryIO, mime_type: Optional[str],
+        text: Optional[str] = None, ignore_warnings: bool = True
+    ) -> None:
+        """Upload file."""
+        if self.csrf_token is None:
+            self.csrf_token = self.get_token('csrf')
+
+        params: Dict[str, Any] = {
+            'action': 'upload',
+            'filename': file_name,
+            'token': self.csrf_token,
+            'format': 'json',
+            'async': '1',  # TODO
+            'file': (file_name, file, mime_type),
+        }
+        if ignore_warnings:
+            params['ignorewarnings'] = '1'
+        if text is not None:
+            params['text'] = text
+
+        encoder = requests_toolbelt.MultipartEncoder(fields=params)
+
+        r = self.session.post(
+            self.api_url, data=encoder,
+            headers={
+                'Content-Type': encoder.content_type,
+            }
+        )
         if r.status_code != 200:
             raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
 

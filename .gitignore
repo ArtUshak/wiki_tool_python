@@ -93,3 +93,5 @@ ENV/
 
 # Poetry virtual environment
 .venv
+
+*.egg-info/

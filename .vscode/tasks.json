@@ -16,19 +16,25 @@
         {
             "label": "list-images",
             "type": "shell",
-            "command": "poetry run python wiki_tool_python/wikitool.py list-images --output-file ../Wiki-ExportFiles-data/images.txt https://absurdopedia.fandom.com",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-images --output-file ../data/horizon/images.txt https://horizonzerodawn.fandom.com/ru",
+            "problemMatcher": []
+        },
+        {
+            "label": "download-images",
+            "type": "shell",
+            "command": "poetry run python wiki_tool_python/wikitool.py download-images ../data/horizon/images.txt ../data/horizon/images",
             "problemMatcher": []
         },
         {
             "label": "list-pages",
             "type": "shell",
-            "command": "poetry run python wiki_tool_python/wikitool.py list-pages --output-file ../Wiki-ExportFiles-data/pages.txt https://absurdopedia.fandom.com",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-pages --output-file ../data/horizon/pages.txt https://horizonzerodawn.fandom.com/ru",
             "problemMatcher": []
         },
         {
             "label": "list-deletedrevs",
             "type": "shell",
-            "command": "poetry run python wiki_tool_python/wikitool.py list-deletedrevs ../Wiki-ExportFiles-data/deletedrevs https://absurdopedia.fandom.com",
+            "command": "poetry run python wiki_tool_python/wikitool.py list-deletedrevs ../data/horizon/deletedrevs https://horizonzerodawn.fandom.com/ru",
             "problemMatcher": []
         },
         {
