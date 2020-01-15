@@ -38,9 +38,11 @@ Install poetry (in Windows PowerShell):
 
 To install or update libraries, run batch file `update.bat`.
 
-To run script to download images, run batch file `download_images.bat` and input URL, or run batch file with URL as first param, for example: `download_images.bat https:\\absurdopedia.wiki\w`.
+To run script to download images, run batch file `download_images.bat` and input URL, or run batch file with URL as first param, for example: `download_images.bat https://absurdopedia.wiki/w`.
 
-To run script to get page list, run batch file `list_pages.bat` and input URL, or run batch file with URL as first param, for example: `list_pages.bat https:\\absurdopedia.wiki\w`.
+To run script to upload images, run batch file `upload_images.bat` and input your username, password and URL, or run batch file with URL as first param and type your username and password, for example: `upload_images.bat https://absurdopedia.wiki/w` and type username and password.
+
+To run script to get page list, run batch file `list_pages.bat` and input URL, or run batch file with URL as first param, for example: `list_pages.bat https://absurdopedia.wiki/w`.
 
 ## Usage
 
