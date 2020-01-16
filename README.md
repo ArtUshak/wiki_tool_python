@@ -70,13 +70,16 @@ List wikiproject images (titles and URLs).
 
 For each image three lines are printed:
 
-1.   Word `FILE`.
+1.   Word `FILE2`.
 2.   Image name on wikiproject (including namespace, for example `File:Ogyglo.png`).
 3.   Image URL on wikiproject.
+4.   Processed file name to save image.
 
 The same format is used by `download-images` command.
 
 **Note**: deleted images may be listed in command output.
+
+**Note**: in earlier versions output format was different.
 
 #### Command `list-images`: options
 
@@ -95,9 +98,10 @@ Output:
 *...*
 
 ```text
-FILE
-File:(2)TheTwoRivers.jpg
-https://gamepedia.cursecdn.com/wowpedia/1/1c/%282%29TheTwoRivers.jpg
+FILE2
+Achievement guild forgreatjusticerank2.png
+https://gamepedia.cursecdn.com/wowpedia/d/d6/Achievement_guild_forgreatjusticerank2.png
+02986-Achievement guild forgreatjusticerank2.png
 ```
 
 *...*
@@ -296,7 +300,7 @@ This command may be used, for example, if your wiki contains another language ve
 
 Download images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) to directory `DOWNLOAD_DIR`.
 
-Each image is downloaded from URL given in file and saved to file with name given in file without namespace (for example, `File:Ogyglo.png` is saved as `Ogyglo.png`).
+Each image is downloaded from URL given in file and saved to file with name given in file (for example, `File:Ogyglo.png` may be saved as `00500-Ogyglo.png`).
 
 **Note**: progress bar is displayed.
 
@@ -343,8 +347,6 @@ python wiki_tool_python/wikitool.py upload-image Pic9231i9149i.png NVGogol.png h
 `python wiki_tool_python/wikitool.py upload-images [OPTIONS] LIST_FILE DOWNLOAD_DIR API_URL`
 
 Upload images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) from directory `DOWNLOAD_DIR` to wiki.
-
-Each image is downloaded from URL given in file and saved to file with name given in file without namespace (for example, `File:Ogyglo.png` is saved as `Ogyglo.png`).
 
 **Note**: this command requires authentication.
 

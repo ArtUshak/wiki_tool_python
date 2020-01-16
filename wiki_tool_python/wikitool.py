@@ -10,6 +10,7 @@ import shutil
 from typing import (
     List, Iterator, Dict, Any, TextIO, BinaryIO, Optional, Tuple, Iterable
 )
+import unicodedata
 
 import click
 import requests
@@ -26,12 +27,16 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
     file_iterator = iter(image_list_file)
     try:
         while True:
-            next(file_iterator)
+            header_line = next(file_iterator)
             title_line = next(file_iterator)
             url_line = next(file_iterator)
+            filename_line = next(file_iterator)
+            if header_line.strip() != 'FILE2':
+                raise ValueError()
             yield {
-                'name': title_line.strip()[5:],
+                'name': title_line.strip(),
                 'url': url_line.strip(),
+                'filename': filename_line.strip(),
             }
     except StopIteration:
         pass
@@ -105,11 +110,21 @@ def list_images(
 ):
     """List images from wikiproject (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    i: int = 0
     for image in api.get_image_list(api_limit):
+        title_regex = re.match(r'.+?\:(.*)', image['title'])
+        if title_regex is None:
+            raise ValueError()  # TODO
+        title: str = title_regex.group(1)
+        filename: str = get_safe_filename(title, i)
+        url: str = image['url']
         click.echo(
-            'FILE\n{}\n{}'.format(image['title'], image['url']),
+            'FILE2\n{}\n{}\n{}'.format(
+                title, url, filename
+            ),
             file=output_file
         )
+        i += 1
 
 
 @click.command()
@@ -442,6 +457,18 @@ def edit_pages_clone_interwikis(
     click.echo('{} pages edited.'.format(edited_num))
 
 
+def get_safe_filename(value: str, i: int) -> str:
+    """
+    Transform file name so it will be NTFS-compliant.
+
+    Add `i` to file name (to beginning), remove illegal characters and
+    leading and trailing whitespaces.
+    """
+    value = unicodedata.normalize('NFKC', '{:05}-{}'.format(i, value.strip()))
+    value = re.sub(r'[\<\>\:\"\/\\\|\?\*]', '', value).strip()
+    return value
+
+
 @click.command()
 @click.pass_context
 @click.argument('list_file', type=click.File('rt'))
@@ -454,7 +481,7 @@ def download_images(ctx: click.Context, list_file: TextIO, download_dir):
         for image in bar:
             r = requests.get(image['url'], stream=True)
             if r.status_code == 200:
-                image_filename = os.path.join(download_dir, image['name'])
+                image_filename = os.path.join(download_dir, image['filename'])
                 with open(image_filename, 'wb') as image_file:
                     r.raw.decode_content = True
                     shutil.copyfileobj(r.raw, image_file)
@@ -512,7 +539,7 @@ def upload_images(
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
             image_name: str = image['name']
-            image_filename: str = os.path.join(download_dir, image_name)
+            image_filename: str = os.path.join(download_dir, image['filename'])
             with open(image_filename, 'rb') as image_file:
                 try:
                     api.upload_file(
