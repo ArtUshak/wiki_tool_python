@@ -339,7 +339,7 @@ No specific options.
 #### Command `upload-image`: example
 
 ```sh
-python wiki_tool_python/wikitool.py upload-image Pic9231i9149i.png NVGogol.png https://absurdopedia.wiki/w
+python wiki_tool_python/wikitool.py upload-image NVGogol.png Pic9231i9149i.png https://absurdopedia.wiki/w
 ```
 
 ### Command `upload-images`

@@ -546,9 +546,11 @@ def upload_images(
                         image_name, image_file,
                         mimetypes.guess_type(image_name)[0]
                     )
-                except mediawiki.MediaWikiAPIError:
+                except mediawiki.MediaWikiAPIError as exc:
                     click.echo(
-                        'Falied to upload file {}.'.format(image_name)
+                        'Falied to upload file {}: {}.'.format(
+                            image_name, exc.message
+                        )
                     )
 
 
