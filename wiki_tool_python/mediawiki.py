@@ -494,22 +494,13 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             'format': 'json',
         }
 
-        r = self.session.get(self.api_url, params=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
-
-        data = r.json()
-        if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+        data = self.call_api(params)
         namespaces = data['query']['namespaces']
 
         return list(
             filter(
                 lambda namespace_id: namespace_id >= 0,
-                map(
-                    int,
-                    namespaces.keys()
-                )
+                map(int, namespaces.keys())
             )
         )
 
@@ -538,26 +529,11 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             params['ucend'] = int(end_date.timestamp())
         last_continue: Dict[str, Any] = {}
 
-        r = self.session.get(self.api_url, params=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
-
-        data = r.json()
-        if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
-
         while True:
             current_params = params.copy()
             current_params.update(last_continue)
-            r = self.session.get(self.api_url, params=current_params)
-            if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
 
-            data = r.json()
-            if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+            data = self.call_api(current_params)
             user_contribs = data['query']['usercontribs']
 
             for user_contrib in user_contribs:
@@ -585,15 +561,8 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         while True:
             current_params = params.copy()
             current_params.update(last_continue)
-            r = self.session.get(self.api_url, params=current_params)
-            if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
 
-            data = r.json()
-            if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+            data = self.call_api(current_params)
             images = data['query']['allimages']
 
             for image_data in images:
@@ -627,15 +596,8 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         while True:
             current_params = params.copy()
             current_params.update(last_continue)
-            r = self.session.get(self.api_url, params=current_params)
-            if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
 
-            data = r.json()
-            if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+            data = self.call_api(current_params)
             pages = data['query']['allpages']
 
             for page_data in pages:
@@ -680,15 +642,8 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         while True:
             current_params = params.copy()
             current_params.update(last_continue)
-            r = self.session.get(self.api_url, params=current_params)
-            if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
 
-            data = r.json()
-            if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+            data = self.call_api(params)
             pages = data['query']['search']
 
             for page_data in pages:
@@ -716,15 +671,8 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         while True:
             current_params = params.copy()
             current_params.update(last_continue)
-            r = self.session.get(self.api_url, params=current_params)
-            if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
 
-            data = r.json()
-            if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+            data = self.call_api(current_params)
             deletedrevs = data['query']['deletedrevs']
 
             for deletedrev_data in deletedrevs:
@@ -742,25 +690,15 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             self, page_name: str, reason: Optional[str] = None
     ) -> None:
         """Delete page."""
-        if self.csrf_token is None:
-            self.csrf_token = self.get_token('csrf')
-
         params: Dict[str, Any] = {
             'action': 'delete',
             'title': page_name,
-            'token': self.csrf_token,
             'format': 'json',
         }
         if reason is not None:
             params['reason'] = reason
 
-        r = self.session.post(self.api_url, data=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
-
-        data = r.json()
-        if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+        self.call_api(params, is_post=True, need_token=True)
 
         return None
 
@@ -768,26 +706,15 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             self, page_name: str, text: str, summary: Optional[str] = None
     ) -> None:
         """Edit page, setting new text."""
-        if self.csrf_token is None:
-            self.csrf_token = self.get_token('csrf')
-
         params: Dict[str, Any] = {
             'action': 'edit',
             'title': page_name,
-            'text': text,
-            'token': self.csrf_token,
             'format': 'json',
         }
         if summary is not None:
             params['summary'] = summary
 
-        r = self.session.post(self.api_url, data=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
-
-        data = r.json()
-        if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+        self.call_api(params, is_post=True, need_token=True)
 
         return None
 
@@ -838,16 +765,9 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             'format': 'json',
         }
 
-        r = self.session.get(self.api_url, params=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+        data = self.call_api(params)
 
-        data = r.json()
-
-        # TODO: handle errors
-        token = data['query']['tokens']['{}token'.format(token_type)]
-
-        return token
+        return data['query']['tokens']['{}token'.format(token_type)]
 
     def api_login(self, username: str, password: str) -> None:
         """Log in to MediaWiki API."""
@@ -861,10 +781,41 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             'lgtoken': token,
         }
 
-        r = self.session.post(self.api_url, data=params)
-        if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+        self.call_api(params, is_post=True, need_token=False)
 
-        data = r.json()
-        if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+    def call_api(
+        self, params: Dict[str, Any], is_post: bool = False,
+        need_token: bool = False, token_retry: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Perform request to MediaWiki API.
+
+        Get token if necessary, raise exception on error.
+        """
+        while True:
+            if need_token:
+                if self.csrf_token is None:
+                    self.csrf_token = self.get_token('csrf')
+                params['token'] = self.csrf_token
+
+            if is_post:
+                r = self.session.post(self.api_url, data=params)
+            else:
+                r = self.session.get(self.api_url, params=params)
+
+            if r.status_code != 200:
+                raise MediaWikiAPIError(
+                    'Status code is {}'.format(r.status_code)
+                )
+
+            data: Dict[str, Any] = r.json()
+            if 'error' in data:
+                if need_token and token_retry:
+                    if data['error']['code'] == 'badtoken':
+                        self.csrf_token = self.get_token('csrf')
+                        continue
+                if data['error']['code'] == 'cantdelete':
+                    raise CanNotDelete(data['error']['info'])
+                raise MediaWikiAPIError(data['error']['info'])
+
+            return data
