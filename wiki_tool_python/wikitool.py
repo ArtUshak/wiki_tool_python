@@ -275,11 +275,15 @@ def list_deletedrevs(
     '--api-limit', default=500, type=click.INT,
     help='Maximum number of entries per API request'
 )
+@click.option(
+    '--namespace', type=click.INT, multiple=True,
+    help='Page namespace', default=(0,)
+)
 def delete_pages(
     ctx: click.Context, filter_expression: str, api_url: str,
     exclude_expression: str,
     first_page: Optional[str], first_page_namespace: Optional[int],
-    reason: str, api_limit: int
+    reason: str, api_limit: int, namespace: List[int]
 ):
     """Delete pages matching regular expression."""
     if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
@@ -289,10 +293,8 @@ def delete_pages(
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
     api.api_login(user_credentials[0], user_credentials[1])
 
-    namespaces: List[int] = [6]  # TODO
-    # namespaces = api.get_namespace_list()  # TODO
     if first_page_namespace is not None:
-        namespaces = namespaces[namespaces.index(first_page_namespace):]
+        namespace = namespace[namespace.index(first_page_namespace):]
 
     compiled_filter_expression = re.compile(filter_expression)
 
@@ -303,12 +305,12 @@ def delete_pages(
     deleted_num: int = 0
     failed_num: int = 0
 
-    for namespace in namespaces:
+    for namespace_item in namespace:
         for page_name in filter(
             lambda page_name:
             compiled_filter_expression.match(page_name) is not None,
             api.get_page_list(
-                namespace, api_limit, first_page=first_page
+                namespace_item, api_limit, first_page=first_page
             )
         ):
             if compiled_exclude_expression is not None:
@@ -356,11 +358,15 @@ def delete_pages(
     '--api-limit', default=500, type=click.INT,
     help='Maximum number of entries per API request'
 )
+@click.option(
+    '--namespace', type=click.INT, multiple=True,
+    help='Page namespace', default=(0,)
+)
 def edit_pages(
     ctx: click.Context, filter_expression: str, new_text: str,
     api_url: str, exclude_expression: str,
     first_page: Optional[str], first_page_namespace: Optional[int],
-    reason: str, api_limit: int
+    reason: str, api_limit: int, namespace: List[int]
 ):
     """Edit pages matching filter expression, using new text."""
     if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
@@ -370,9 +376,8 @@ def edit_pages(
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
     api.api_login(user_credentials[0], user_credentials[1])
 
-    namespaces: List[int] = [0, 100, 112]  # TODO
     if first_page_namespace is not None:
-        namespaces = namespaces[namespaces.index(first_page_namespace):]
+        namespace = namespace[namespace.index(first_page_namespace):]
 
     compiled_filter_expression = re.compile(filter_expression)
     exclude_filter_expression = None
@@ -381,12 +386,12 @@ def edit_pages(
 
     edited_num: int = 0
 
-    for namespace in namespaces:
+    for namespace_item in namespace:
         for page_name in filter(
             lambda page_name:
             compiled_filter_expression.match(page_name) is not None,
             api.get_page_list(
-                namespace, api_limit, redirect_filter_mode='nonredirects',
+                namespace_item, api_limit, redirect_filter_mode='nonredirects',
                 first_page=first_page
             )
         ):
