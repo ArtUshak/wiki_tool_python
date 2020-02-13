@@ -233,6 +233,8 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 `--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
 
+`--namespace INTEGER` Namespace to search pages for deletion (this option can be used multiple times to add multiple namespaces).
+
 ### Command `edit-pages`
 
 `python wiki_tool_python/wikitool.py edit-pages [OPTIONS] FILTER_EXPRESSION NEW_TEXT API_URL`
@@ -256,6 +258,8 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 `--first-page-namespace INTEGER` Namespace of first page to edit.
 
 `--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
+
+`--namespace INTEGER` Namespace to search pages for deletion (this option can be used multiple times to add multiple namespaces).
 
 ### Command `edit-pages-clone-interwikis`
 
