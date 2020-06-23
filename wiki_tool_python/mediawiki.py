@@ -7,6 +7,8 @@ import click
 import requests
 import requests_toolbelt
 
+NAMESPACE_IMAGES = 6
+
 
 class MediaWikiAPIError(click.ClickException):
     """MediaWiki API error."""
@@ -44,6 +46,20 @@ class MediaWikiAPI(ABC):
 
         Each image data is dictionary with two fields: `title` and `url`.
         """
+        raise NotImplementedError()
+
+    def get_page_image_list(
+        self, image_ids_limit: int, page_ids: List[int]
+    ) -> Iterator[Dict[str, str]]:
+        """Iterate over images with given page IDs."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_category_members(
+        self, category_name: str, limit: int,
+        namespace: Optional[int] = None, member_type: Optional[str] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """Iterate over pages in category `category_name`."""
         raise NotImplementedError()
 
     @abstractmethod
@@ -202,6 +218,13 @@ class MediaWikiAPI1_19(MediaWikiAPI):
                 break
             last_continue = data['query-continue']['usercontribs']
 
+    def get_category_members(
+        self, category_name: str, limit: int,
+        namespace: Optional[int] = None, member_type: Optional[str] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """Iterate over pages in category `category_name`."""
+        raise NotImplementedError()
+
     def get_image_list(self, limit: int) -> Iterator[Dict[str, str]]:
         """
         Iterate over all images in wiki.
@@ -240,6 +263,12 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             if 'query-continue' not in data:
                 break
             last_continue = data['query-continue']['allimages']
+
+    def get_page_image_list(
+        self, image_ids_limit: int, page_ids: List[int]
+    ) -> Iterator[Dict[str, str]]:
+        """Iterate over images with given page IDs."""
+        raise NotImplementedError()
 
     def get_page_list(
         self, namespace: int, limit: int, first_page: Optional[str] = None,
@@ -570,6 +599,79 @@ class MediaWikiAPI1_31(MediaWikiAPI):
                     'title': image_data['title'],
                     'url': image_data['url'],
                 }
+
+            if 'continue' not in data:
+                break
+            last_continue = data['continue']
+
+    def get_page_image_list(
+        self, image_ids_limit: int, page_ids: List[int]
+    ) -> Iterator[Dict[str, str]]:
+        """Iterate over images with given page IDs."""
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'prop': 'imageinfo',
+            'iiprop': 'url',
+            'iilimit': 1,
+            'format': 'json',
+        }
+
+        i: int = 0
+        while i < len(page_ids):
+            current_params = params.copy()
+            page_ids_group: List[int]
+            if (i + image_ids_limit) >= len(page_ids):
+                page_ids_group = page_ids[i:]
+            else:
+                page_ids_group = page_ids[i:i + image_ids_limit]
+            current_params['pageids'] = '|'.join(
+                list(map(str, page_ids_group))
+            )
+
+            data = self.call_api(current_params)
+            pages_data = data['query']['pages']
+
+            for page_id in pages_data:
+                page_data = pages_data[page_id]
+                yield {
+                    'title': page_data['title'],
+                    'url': page_data['imageinfo'][0]['url'],
+                }
+
+            i += image_ids_limit
+
+    def get_category_members(
+        self, category_name: str, limit: int,
+        namespace: Optional[int] = None, member_type: Optional[str] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Iterate over pages in category `category_name`.
+
+        `member_type` can be `None`, `page`, 'subcat` or `file`.
+        """
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'list': 'categorymembers',
+            'cmtitle': category_name,
+            'cmdir': 'ascending',
+            'cmlimit': limit,
+            'format': 'json',
+        }
+        if member_type in ['page', 'subcat', 'file']:
+            params['cmtype'] = member_type
+        if namespace is not None:
+            params['cmnamespace'] = namespace
+        last_continue: Dict[str, Any] = {}
+
+        while True:
+            current_params = params.copy()
+            current_params.update(last_continue)
+
+            data = self.call_api(current_params)
+            pages = data['query']['categorymembers']
+
+            for page_data in pages:
+                yield page_data
 
             if 'continue' not in data:
                 break

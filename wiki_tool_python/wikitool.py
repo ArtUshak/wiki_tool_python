@@ -106,7 +106,7 @@ def get_mediawiki_api(
     help='Maximum number of entries per API request'
 )
 def list_images(
-    ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int
+    ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int,
 ):
     """List images from wikiproject (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -125,6 +125,55 @@ def list_images(
             file=output_file
         )
         i += 1
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument('category', type=click.STRING)
+@click.option(
+    '--output-file', type=click.File('wt'),
+    help='Text file to write image list'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+@click.option(
+    '--api-image-ids-limit', default=50, type=click.INT,
+    help='Maximum number of image IDs passed per API request'
+)
+def list_category_images(
+    ctx: click.Context, api_url: str, category: str, output_file: TextIO,
+    api_limit: int, api_image_ids_limit: int,
+):
+    """List images from category (titles and URLs)."""
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    page_ids: List[int] = list(map(
+        lambda page_data: page_data['pageid'],
+        api.get_category_members(
+            category, api_limit, mediawiki.NAMESPACE_IMAGES, 'file'
+        )
+    ))
+    i: int = 0
+    with click.progressbar(
+        api.get_page_image_list(api_image_ids_limit, page_ids),
+        length=len(page_ids)
+    ) as bar:
+        for image_data in bar:
+            title_regex = re.match(r'.+?\:(.*)', image_data['title'])
+            if title_regex is None:
+                raise ValueError()  # TODO
+            title: str = title_regex.group(1)
+            filename: str = get_safe_filename(title, i)
+            url: str = image_data['url']
+            click.echo(
+                'FILE2\n{}\n{}\n{}'.format(
+                    title, url, filename
+                ),
+                file=output_file
+            )
+            i += 1
 
 
 @click.command()
@@ -687,6 +736,7 @@ def votecount(
 
 cli.add_command(list_images)
 cli.add_command(list_pages)
+cli.add_command(list_category_images)
 cli.add_command(list_namespace_pages)
 cli.add_command(list_deletedrevs)
 cli.add_command(download_images)

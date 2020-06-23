@@ -4,7 +4,7 @@ Script to perform various tasks with websites (wikiprojects) on [MediaWiki](http
 
 ## Installation
 
-Install Python 3.7 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
+Install Python 3.8 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
 
 Then you can just run `poetry run COMMAND` to run specific commands under python virtual environment created by poetry.
 
@@ -12,7 +12,7 @@ Or you can enter poetry shell (by running `poetry shell`) and then type script c
 
 ### Installation example
 
-Assuming Python 3.7 or higher and poetry are installed.
+Assuming Python 3.8 or higher and poetry are installed.
 
 Initialise and update virtual environment (assuming you are in the folder with this README file):
 
@@ -28,7 +28,7 @@ poetry run python wiki_tool_python/wikitool.py --help
 
 ### Windows installation example
 
-Assuming Python 3.7 or higher is installed.
+Assuming Python 3.8 or higher is installed.
 
 Install poetry (in Windows PowerShell):
 
@@ -102,6 +102,39 @@ FILE2
 Achievement guild forgreatjusticerank2.png
 https://gamepedia.cursecdn.com/wowpedia/d/d6/Achievement_guild_forgreatjusticerank2.png
 02986-Achievement guild forgreatjusticerank2.png
+```
+
+*...*
+
+### Command `list-category-images`
+
+`python wiki_tool_python/wikitool.py list-category-images [OPTIONS] API_URL CATEGORY`
+
+List wikiproject images (titles and URLs) from specific category in the same format as `list-images`.
+
+#### Command `list-category-images`: options
+
+`--output-file FILENAME` Text file to write image list (standard output is used by default)
+
+`--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
+
+`--api-image-ids-limit INTEGER` Maximum number of image IDs per API request (default value is 50).
+
+#### Command `list-category-images`: example
+
+```sh
+python wiki_tool_python/wikitool.py list-category-images https://wow.gamepedia.com "Category:Images with watermarks"
+```
+
+Output:
+
+*...*
+
+```text
+FILE2
+Quartermaster Alcorn - Beta.jpg
+https://gamepedia.cursecdn.com/wowpedia/2/2a/Quartermaster_Alcorn_-_Beta.jpg
+00897-Quartermaster Alcorn - Beta.jpg
 ```
 
 *...*
@@ -219,7 +252,7 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 **Note**: this command deletes pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.7/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.8/library/re.html) for details.
 
 #### Command `delete-pages`: options
 
@@ -245,7 +278,7 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 
 **Note**: this command edits pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.7/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.8/library/re.html) for details.
 
 #### Command `edit-pages`: options
 
