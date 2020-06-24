@@ -511,6 +511,61 @@ def edit_pages_clone_interwikis(
     click.echo('{} pages edited.'.format(edited_num))
 
 
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument('old', type=click.STRING)
+@click.argument('new', type=click.STRING)
+@click.option(
+    '--reason', default='Replacing links', type=click.STRING,
+    help='Edit reason'
+)
+@click.option(
+    '--api-limit', default=500, type=click.INT,
+    help='Maximum number of entries per API request'
+)
+def replace_links(
+    ctx: click.Context, api_url: str, old: str, new: str,
+    reason: str, api_limit: int,
+):
+    """Replace links to page OLD by links to page NEW."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    edited_num: int = 0
+    processed_num: int = 0
+
+    backlinks = list(api.get_backlinks(old, None, api_limit))
+
+    with click.progressbar(backlinks, length=len(backlinks)) as bar:
+        for backlink in bar:
+            page_name = backlink['title']
+            old_text = api.get_page(page_name)
+            new_text1 = re.sub(
+                r'\[\[' + old + r'\|([^\]]+)\]\]',
+                lambda m: '[[' + new + '|' + m.group(1) + ']]',
+                old_text,
+                flags=re.I
+            )
+            new_text2 = re.sub(
+                r'\[\[(' + old + r')\]\]',
+                lambda m: '[[' + new + '|' + m.group(1) + ']]',
+                new_text1,
+                flags=re.I
+            )
+            processed_num += 1
+            if old_text == new_text2:
+                continue
+            edited_num += 1
+            api.edit_page(page_name, new_text2, reason)
+
+    click.echo(f'{processed_num} pages processed, {edited_num} pages edited')
+
+
 def get_safe_filename(value: str, i: int) -> str:
     """
     Transform file name so it will be NTFS-compliant.
@@ -743,6 +798,7 @@ cli.add_command(download_images)
 cli.add_command(delete_pages)
 cli.add_command(edit_pages)
 cli.add_command(edit_pages_clone_interwikis)
+cli.add_command(replace_links)
 cli.add_command(upload_image)
 cli.add_command(upload_images)
 cli.add_command(votecount)

@@ -101,16 +101,23 @@ class MediaWikiAPI(ABC):
 
     @abstractmethod
     def delete_page(
-            self, page_name: str, reason: Optional[str] = None
+        self, page_name: str, reason: Optional[str] = None
     ) -> None:
         """Delete page."""
         raise NotImplementedError()
 
     @abstractmethod
     def edit_page(
-            self, page_name: str, text: str, summary: Optional[str] = None
+        self, page_name: str, text: str, summary: Optional[str] = None
     ) -> None:
         """Edit page, setting new text."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_backlinks(
+        self, title: str, namespace: Optional[int], limit: int
+    ) -> Iterator[Dict[str, Any]]:
+        """Get list of pages which has links to given page."""
         raise NotImplementedError()
 
     @abstractmethod
@@ -313,7 +320,18 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         self, title: str,
     ) -> str:
         """Get text of page with `title`."""
-        raise NotImplementedError()
+        params: Dict[str, Any] = {
+            'action': 'raw',
+            'title': title,
+        }
+
+        r = self.session.get(self.index_url, params=params)
+        if r.status_code != 200:
+            raise MediaWikiAPIError(
+                'Status code is {}'.format(r.status_code)
+            )
+
+        return r.text
 
     def search_pages(
         self, search_request: str, namespace: int, limit: int,
@@ -431,7 +449,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             'format': 'json',
         }
 
-        r = self.session.post(self.api_url, params=params)
+        r = self.session.post(self.api_url, data=params)
         if r.status_code != 200:
             raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
 
@@ -448,6 +466,43 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             data['query']['pages'].values()
         ))
 
+    def get_backlinks(
+        self, title: str, namespace: Optional[int], limit: int
+    ) -> Iterator[Dict[str, Any]]:
+        """Get list of pages which has links to given page."""
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'list': 'backlinks',
+            'bltitle': title,
+            'bllimit': limit,
+            'format': 'json',
+        }
+        if namespace is not None:
+            params['blnamespace'] = namespace
+
+        last_continue: Dict[str, Any] = {}
+
+        while True:
+            current_params = params.copy()
+            current_params.update(last_continue)
+            r = self.session.get(self.api_url, params=current_params)
+            if r.status_code != 200:
+                raise MediaWikiAPIError(
+                    'Status code is {}'.format(r.status_code)
+                )
+
+            data = r.json()
+            if 'error' in data:
+                raise MediaWikiAPIError(data['error'])
+            backlinks = data['query']['backlinks']
+
+            for backlink in backlinks:
+                yield backlink
+
+            if 'query-continue' not in data:
+                break
+            last_continue = data['query-continue']['backlinks']
+
     def api_login(self, username: str, password: str) -> None:
         """Log in to MediaWiki API."""
         params1: Dict[str, Any] = {
@@ -457,7 +512,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             'lgpassword': password,
         }
 
-        r1 = self.session.post(self.api_url, data=params1)
+        r1 = self.session.post(self.api_url, params1)
         if r1.status_code != 200:
             raise MediaWikiAPIError('Status code is {}'.format(r1.status_code))
 
@@ -811,6 +866,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         params: Dict[str, Any] = {
             'action': 'edit',
             'title': page_name,
+            'text': text,
             'format': 'json',
         }
         if summary is not None:
@@ -870,6 +926,43 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         data = self.call_api(params)
 
         return data['query']['tokens']['{}token'.format(token_type)]
+
+    def get_backlinks(
+        self, title: str, namespace: Optional[int], limit: int
+    ) -> Iterator[Dict[str, Any]]:
+        """Get list of pages which has links to given page."""
+        params: Dict[str, Any] = {
+            'action': 'query',
+            'list': 'backlinks',
+            'bltitle': title,
+            'bllimit': limit,
+            'format': 'json',
+        }
+        if namespace is not None:
+            params['blnamespace'] = namespace
+
+        last_continue: Dict[str, Any] = {}
+
+        while True:
+            current_params = params.copy()
+            current_params.update(last_continue)
+            r = self.session.get(self.api_url, params=current_params)
+            if r.status_code != 200:
+                raise MediaWikiAPIError(
+                    'Status code is {}'.format(r.status_code)
+                )
+
+            data = r.json()
+            if 'error' in data:
+                raise MediaWikiAPIError(data['error'])
+            backlinks = data['query']['backlinks']
+
+            for backlink in backlinks:
+                yield backlink
+
+            if 'query-continue' not in data:
+                break
+            last_continue = data['query-continue']['backlinks']
 
     def api_login(self, username: str, password: str) -> None:
         """Log in to MediaWiki API."""

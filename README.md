@@ -331,6 +331,40 @@ This command may be used, for example, if your wiki contains another language ve
 
 `--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
 
+### Command `replace-links`
+
+`python wiki_tool_python/wikitool.py replace-links [OPTIONS] API_URL OLD NEW`
+
+Replace links to page `OLD` by links to page `NEW`.
+
+For example, if `NEW` is `Wikiproject administrator`, and `OLD` is `Administrator`, than:
+
+```text
+Arthur Brahmaguptov was [[administrator]] of [[Encyclopedia Dramatica]].
+```
+
+will be replaced with:
+
+```text
+Arthur Brahmaguptov was [[Wikiproject administrator|administrator]] of [[Encyclopedia Dramatica]].
+```
+
+**Note**: this command requires authentication.
+
+**Note**: this command edits pages, use it with caution!
+
+#### Command `replace-links`: options
+
+`--reason TEXT` Edit reason.
+
+`--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
+
+#### Command: `replace-links`: example
+
+```sh
+python ./wiki_tool_python/wikitool.py replace-links http://wikireality.ru/w Администратор "Администратор википроекта"
+```
+
 ### Command `download-images`
 
 `python wiki_tool_python/wikitool.py download-images [OPTIONS] LIST_FILE DOWNLOAD_DIR`
