@@ -18,6 +18,10 @@ class CanNotDelete(MediaWikiAPIError):
     """Page can not be deleted."""
 
 
+class PageProtected(MediaWikiAPIError):
+    """Page can not be edited because it is protected."""
+
+
 class MediaWikiAPI(ABC):
     """Base MediaWiki API class."""
 
@@ -428,6 +432,8 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         data = r.json()
         if 'error' in data:
+            if data['error']['code'] == 'protectedpage':
+                raise PageProtected(data['error'])
             raise MediaWikiAPIError(data['error'])
 
         return None
@@ -954,6 +960,8 @@ class MediaWikiAPI1_31(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
+                if data['error']['code'] == 'protectedpage':
+                    raise PageProtected(data['error'])
                 raise MediaWikiAPIError(data['error'])
             backlinks = data['query']['backlinks']
 

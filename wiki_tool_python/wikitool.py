@@ -538,6 +538,7 @@ def replace_links(
 
     edited_num: int = 0
     processed_num: int = 0
+    protected_num: int = 0
 
     backlinks = list(api.get_backlinks(old, None, api_limit))
 
@@ -560,10 +561,17 @@ def replace_links(
             processed_num += 1
             if old_text == new_text2:
                 continue
+            try:
+                api.edit_page(page_name, new_text2, reason)
+            except mediawiki.PageProtected:
+                protected_num += 1
+                continue
             edited_num += 1
-            api.edit_page(page_name, new_text2, reason)
 
-    click.echo(f'{processed_num} pages processed, {edited_num} pages edited')
+    click.echo(
+        f'{processed_num} pages processed, {edited_num} pages edited, '
+        f'{protected_num} were not edited due to protection level'
+    )
 
 
 def get_safe_filename(value: str, i: int) -> str:
