@@ -7,15 +7,14 @@ import mimetypes
 import os
 import re
 import shutil
-from typing import (
-    List, Iterator, Dict, Any, TextIO, BinaryIO, Optional, Tuple, Iterable
-)
 import unicodedata
+from typing import (Any, BinaryIO, Dict, Iterable, Iterator, List, Optional,
+                    TextIO, Tuple)
 
 import click
 import requests
 
-import mediawiki
+from wiki_tool_python import mediawiki
 
 
 def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
@@ -582,8 +581,7 @@ def get_safe_filename(value: str, i: int) -> str:
     leading and trailing whitespaces.
     """
     value = unicodedata.normalize('NFKC', '{:05}-{}'.format(i, value.strip()))
-    value = re.sub(r'[\<\>\:\"\/\\\|\?\*]', '', value).strip()
-    return value
+    return re.sub(r'[\<\>\:\"\/\\\|\?\*]', '', value).strip()
 
 
 @click.command()
@@ -666,7 +664,7 @@ def upload_images(
                 except mediawiki.MediaWikiAPIError as exc:
                     click.echo(
                         'Falied to upload file {}: {}.'.format(
-                            image_name, exc.message
+                            image_name, str(exc)
                         )
                     )
 
@@ -724,12 +722,12 @@ def votecount(
         map(lambda key: (int(key), namespaces_page_weights[key]),
             namespaces_page_weights))
 
-    users_data: Dict[str, Dict[str, Any]] = dict()
+    users_data: Dict[str, Dict[str, Any]] = {}
     for user in users:
         click.echo('Processing user {}...'.format(user))
         user_vote_power: float = 0.0
         user_new_pages: int = 0
-        user_data: Dict[str, Any] = dict()
+        user_data: Dict[str, Any] = {}
 
         for namespace in namespaces_edit_weights:
             pages_count = 0

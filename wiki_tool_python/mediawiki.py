@@ -1,7 +1,7 @@
 """MediaWiki API interaction functions."""
-from abc import ABC, abstractmethod
 import datetime
-from typing import List, Iterable, Iterator, Dict, Any, Optional, BinaryIO
+from abc import ABC, abstractmethod
+from typing import Any, BinaryIO, Dict, Iterable, Iterator, List, Optional
 
 import click
 import requests
@@ -144,8 +144,8 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         self.api_url = '{}/api.php'.format(url)
         self.index_url = '{}/index.php'.format(url)
         self.session = requests.Session()
-        self.edit_tokens = dict()
-        self.delete_tokens = dict()
+        self.edit_tokens = {}
+        self.delete_tokens = {}
 
     def get_namespace_list(self) -> List[int]:
         """Iterate over namespaces in wiki."""
@@ -408,8 +408,6 @@ class MediaWikiAPI1_19(MediaWikiAPI):
                 raise CanNotDelete(data['error']['info'])
             raise MediaWikiAPIError(data['error'])
 
-        return None
-
     def edit_page(
             self, page_name: str, text: str, summary: Optional[str] = None
     ) -> None:
@@ -435,8 +433,6 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             if data['error']['code'] == 'protectedpage':
                 raise PageProtected(data['error'])
             raise MediaWikiAPIError(data['error'])
-
-        return None
 
     def upload_file(
         self, file_name: str, file: BinaryIO, mime_type: Optional[str],
@@ -863,8 +859,6 @@ class MediaWikiAPI1_31(MediaWikiAPI):
 
         self.call_api(params, is_post=True, need_token=True)
 
-        return None
-
     def edit_page(
             self, page_name: str, text: str, summary: Optional[str] = None
     ) -> None:
@@ -879,8 +873,6 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             params['summary'] = summary
 
         self.call_api(params, is_post=True, need_token=True)
-
-        return None
 
     def upload_file(
         self, file_name: str, file: BinaryIO, mime_type: Optional[str],
@@ -917,8 +909,6 @@ class MediaWikiAPI1_31(MediaWikiAPI):
         data = r.json()
         if 'error' in data:
             raise MediaWikiAPIError(data['error'])
-
-        return None
 
     def get_token(self, token_type: str) -> str:
         """Return CSRF token for API."""
