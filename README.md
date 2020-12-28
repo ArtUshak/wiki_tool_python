@@ -556,6 +556,35 @@ VotePower: 1.32
 
 *...*
 
+### Command `upload-pages`
+
+`python wiki_tool_python/wikitool.py upload-pages [OPTIONS] LIST_FILE DOWNLOAD_DIR API_URL`
+
+Create or overwrite pages from `.txt` files in input directory.
+
+Directories are handled recursively, with directory name and `/` appended to prefix.
+
+Files with .txt extension are uploaded as pages, page name for file is prefix concatenaed with file name without extension.
+
+**Note**: this command requires authentication.
+
+#### Command `upload-pages`: example
+
+There are files `../data/wiki-pages/Test.txt` and `../data/wikip-ages/Test/Test1.txt`.
+
+```sh
+python ./wiki_tool_python/wikitool.py upload-pages --prefix="User:ArtushakBot/" --reason="Test page upload" https://genepedia.ru ../data/wiki-pages/
+```
+
+The following pages will be created:
+
+* `User:ArtushakBot/Test` with text from `../data/wiki-pages/Test.txt`
+* `User:ArtushakBot/Test/Test1.txt` with text from `../data/wikip-ages/Test/Test1.txt`
+
+#### Command `upload-pages`: options
+
+`--reason TEXT` Edit reason.
+
 ## Example
 
 ```sh

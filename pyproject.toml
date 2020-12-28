@@ -4,6 +4,13 @@ version = "0.1.0"
 description = "Script to perform tasks with websites on MediaWiki engine using API"
 authors = ["Artiom Khandamirov <t9max@yandex.ru>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ArtUshak/wiki_tool_python/"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Operating System :: OS Independent"
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"

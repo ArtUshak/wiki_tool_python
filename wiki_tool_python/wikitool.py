@@ -5,6 +5,7 @@ import datetime
 import json
 import mimetypes
 import os
+import pathlib
 import re
 import shutil
 import unicodedata
@@ -14,7 +15,7 @@ from typing import (Any, BinaryIO, Dict, Iterable, Iterator, List, Optional,
 import click
 import requests
 
-from wiki_tool_python import mediawiki
+import mediawiki
 
 
 def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
@@ -756,7 +757,7 @@ def votecount(
         user_data['VotePower'] = user_vote_power
         users_data[user] = copy.copy(user_data)
 
-    if format == 'txt':
+    if output_format == 'txt':
         for user in users_data:
             click.echo('User {}'.format(user))
             for key in user_data:
@@ -795,6 +796,68 @@ def votecount(
             click.echo('')
 
 
+def upload_pages_from_directory(
+    api: mediawiki.MediaWikiAPI, input_directory_path: pathlib.Path,
+    prefix: str, summary: Optional[str]
+):
+    """
+    Upload files from directory as MediaWiki pages recursively.
+
+    Directories are handled recursively,
+    with directory name and '/' appended to prefix.
+
+    Files with .txt extension are uploaded as pages, page name for file is
+    prefix concatenaed with file name without extension.
+    """
+    for input_file_path in input_directory_path.iterdir():
+        if input_file_path.is_dir():
+            upload_pages_from_directory(
+                api, input_file_path, prefix + input_file_path.name + '/',
+                summary
+            )
+        elif input_file_path.is_file():
+            with open(input_file_path, 'rt') as input_file:
+                page_text = input_file.read()
+            api.edit_page(
+                prefix + input_file_path.with_suffix('').name, page_text
+            )
+
+
+@click.command()
+@click.pass_context
+@click.argument('api_url', type=click.STRING)
+@click.argument(
+    'input_directory',
+    type=click.Path(
+        exists=True, readable=True, dir_okay=True, file_okay=False
+    )
+)
+@click.option(
+    '--prefix', default='',
+    type=click.STRING,
+    help='Prefix for file names'
+)
+@click.option(
+    '--reason', default='Mass upload', type=click.STRING,
+    help='Edit reason'
+)
+def upload_pages(
+    ctx: click.Context, api_url: str, input_directory: str, prefix: str,
+    reason: str
+):
+    """Create pages from txt files in input directory."""
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+
+    input_directory_path = pathlib.Path(input_directory)
+
+    upload_pages_from_directory(api, input_directory_path, prefix, reason)
+
+
 cli.add_command(list_images)
 cli.add_command(list_pages)
 cli.add_command(list_category_images)
@@ -808,6 +871,7 @@ cli.add_command(replace_links)
 cli.add_command(upload_image)
 cli.add_command(upload_images)
 cli.add_command(votecount)
+cli.add_command(upload_pages)
 
 
 if __name__ == '__main__':

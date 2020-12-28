@@ -1,11 +1,9 @@
 {
     "python.pythonPath": ".venv/bin/python",
     "python.linting.flake8Enabled": true,
+    "python.linting.flake8CategorySeverity.W": "Warning",
+    "python.linting.flake8CategorySeverity.E": "Error",
+    "python.linting.flake8CategorySeverity.F": "Error",
     "python.linting.mypyEnabled": true,
-    "markdownlint.config": {
-        "MD030": {
-            "ul_single": 3,
-            "ol_single": 3
-        }
-    }
+    "python.sortImports.path": "isort"
 }
