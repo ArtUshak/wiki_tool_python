@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Script for interacting with MediaWiki."""
+import contextlib
 import copy
 import datetime
+import itertools
 import json
 import mimetypes
 import os
@@ -9,8 +11,8 @@ import pathlib
 import re
 import shutil
 import unicodedata
-from typing import (Any, BinaryIO, Dict, Iterable, Iterator, List, Optional,
-                    TextIO, Tuple)
+from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
+                    List, Optional, TextIO, Tuple)
 
 import click
 import requests
@@ -796,31 +798,85 @@ def votecount(
             click.echo('')
 
 
-def upload_pages_from_directory(
+def get_directory_page_list(
+    root_directory_path: pathlib.Path, input_directory_path: pathlib.Path,
+    show_progess: bool
+) -> List[pathlib.Path]:
+    """List `.txt` files in directory recursively."""
+    result: List[pathlib.Path] = []
+    it = input_directory_path.iterdir()
+    ctx: ContextManager[Iterable[pathlib.Path]]
+    if show_progess:
+        ctx = click.progressbar(
+            iter(it), length=len(os.listdir(str(input_directory_path)))
+        )
+    else:
+        ctx = contextlib.nullcontext(iter(it))
+    with ctx as it1:
+        for input_file_path in it1:
+            if input_file_path.is_dir():
+                result += get_directory_page_list(
+                    root_directory_path, input_file_path, False
+                )
+            elif input_file_path.is_file():
+                if input_file_path.suffix != '.txt':
+                    continue
+                result.append(
+                    input_file_path.relative_to(root_directory_path)
+                )
+    return result
+
+
+@click.command()
+@click.argument(
+    'input_directory',
+    type=click.Path(
+        exists=True, readable=True, dir_okay=True, file_okay=False
+    )
+)
+@click.argument(
+    'output_file',
+    type=click.File(mode='wt')
+)
+def list_directory_pages(input_directory: str, output_file: TextIO):
+    """Write list of `.txt` file pathes in directory to JSON file."""
+    input_directory_path = pathlib.Path(input_directory)
+    page_file_list = get_directory_page_list(
+        input_directory_path, input_directory_path, True
+    )
+    json.dump(
+        list(map(str, page_file_list)), output_file,
+        ensure_ascii=False, indent=4
+    )
+
+
+def upload_page_from_directory(
     api: mediawiki.MediaWikiAPI, input_directory_path: pathlib.Path,
-    prefix: str, summary: Optional[str]
+    page_file_path: pathlib.Path, prefix: str, summary: Optional[str],
+    append: bool
 ):
     """
-    Upload files from directory as MediaWiki pages recursively.
-
-    Directories are handled recursively,
-    with directory name and '/' appended to prefix.
-
-    Files with .txt extension are uploaded as pages, page name for file is
-    prefix concatenaed with file name without extension.
+    Upload MediaWiki file as page with title according to path and prefix.
     """
-    for input_file_path in input_directory_path.iterdir():
-        if input_file_path.is_dir():
-            upload_pages_from_directory(
-                api, input_file_path, prefix + input_file_path.name + '/',
-                summary
+    with open(
+        input_directory_path.joinpath(page_file_path), 'rt'
+    ) as page_file:
+        loaded_page_text = page_file.read()
+    page_title = prefix + str(page_file_path.with_suffix(''))
+    edit_page_text = loaded_page_text
+    if append:
+        try:
+            old_page_text = api.get_page(page_title)
+        except mediawiki.StatusCodeError as exc:
+            if exc.status_code != 404:
+                raise
+        else:
+            edit_page_text = (
+                old_page_text + '\n\n' + edit_page_text
             )
-        elif input_file_path.is_file():
-            with open(input_file_path, 'rt') as input_file:
-                page_text = input_file.read()
-            api.edit_page(
-                prefix + input_file_path.with_suffix('').name, page_text
-            )
+    api.edit_page(
+        page_title, edit_page_text, summary
+    )
 
 
 @click.command()
@@ -832,18 +888,35 @@ def upload_pages_from_directory(
         exists=True, readable=True, dir_okay=True, file_okay=False
     )
 )
+@click.argument(
+    'list_file',
+    type=click.File(mode='rt')
+)
 @click.option(
     '--prefix', default='',
     type=click.STRING,
-    help='Prefix for file names'
+    help='Prefix for page titles'
 )
 @click.option(
-    '--reason', default='Mass upload', type=click.STRING,
-    help='Edit reason'
+    '--summary', default='Mass upload', type=click.STRING,
+    help='Edit summary'
+)
+@click.option(
+    '--first-page', type=click.INT,
+    help='Page number to start with'
+)
+@click.option(
+    '--mode', default='append', type=click.Choice(
+        ['append', 'overwrite']
+    ),
+    help=(
+        'Whether to append text from file to old text on existing pages, '
+        'or overwrite old text with text from file'
+    )
 )
 def upload_pages(
-    ctx: click.Context, api_url: str, input_directory: str, prefix: str,
-    reason: str
+    ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
+    prefix: str, summary: str, mode: str, first_page: Optional[int]
 ):
     """Create pages from txt files in input directory."""
     if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
@@ -855,7 +928,26 @@ def upload_pages(
 
     input_directory_path = pathlib.Path(input_directory)
 
-    upload_pages_from_directory(api, input_directory_path, prefix, reason)
+    page_file_list = list(map(pathlib.Path, json.load(list_file)))
+
+    append: bool
+    if mode == 'append':
+        append = True
+    else:
+        append = False
+
+    it: Iterable[pathlib.Path]
+    if first_page is None:
+        it = page_file_list
+    else:
+        it = itertools.islice(page_file_list, first_page, None)
+
+    with click.progressbar(it, show_pos=True) as bar:
+        for page_file_path in bar:
+            upload_page_from_directory(
+                api, input_directory_path, page_file_path, prefix,
+                summary, append
+            )
 
 
 cli.add_command(list_images)
@@ -871,6 +963,7 @@ cli.add_command(replace_links)
 cli.add_command(upload_image)
 cli.add_command(upload_images)
 cli.add_command(votecount)
+cli.add_command(list_directory_pages)
 cli.add_command(upload_pages)
 
 

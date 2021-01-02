@@ -14,6 +14,17 @@ class MediaWikiAPIError(click.ClickException):
     """MediaWiki API error."""
 
 
+class StatusCodeError(MediaWikiAPIError):
+    """Status code is not 200."""
+
+    status_code: int
+
+    def __init__(self, status_code: int):
+        """Initialize."""
+        self.status_code = status_code
+        super().__init__(f'Status code is {status_code}')
+
+
 class CanNotDelete(MediaWikiAPIError):
     """Page can not be deleted."""
 
@@ -158,7 +169,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.get(self.api_url, params=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -202,7 +213,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.get(self.api_url, params=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -213,9 +224,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -256,9 +265,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -304,9 +311,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -331,9 +336,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.get(self.index_url, params=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError(
-                'Status code is {}'.format(r.status_code)
-            )
+            raise StatusCodeError(r.status_code)
 
         return r.text
 
@@ -363,9 +366,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -400,7 +401,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.post(self.api_url, data=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -426,7 +427,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.post(self.api_url, data=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -453,7 +454,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r = self.session.post(self.api_url, data=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -489,9 +490,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -516,7 +515,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r1 = self.session.post(self.api_url, params1)
         if r1.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r1.status_code))
+            raise StatusCodeError(r1.status_code)
 
         data1 = r1.json()
         if 'error' in data1:
@@ -777,9 +776,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
 
         r = self.session.get(self.index_url, params=params)
         if r.status_code != 200:
-            raise MediaWikiAPIError(
-                'Status code is {}'.format(r.status_code)
-            )
+            raise StatusCodeError(r.status_code)
 
         return r.text
 
@@ -868,6 +865,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             'title': page_name,
             'text': text,
             'format': 'json',
+            'bot': True
         }
         if summary is not None:
             params['summary'] = summary
@@ -904,7 +902,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             }
         )
         if r.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(r.status_code)
 
         data = r.json()
         if 'error' in data:
@@ -944,9 +942,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             current_params.update(last_continue)
             r = self.session.get(self.api_url, params=current_params)
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data = r.json()
             if 'error' in data:
@@ -997,9 +993,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
                 r = self.session.get(self.api_url, params=params)
 
             if r.status_code != 200:
-                raise MediaWikiAPIError(
-                    'Status code is {}'.format(r.status_code)
-                )
+                raise StatusCodeError(r.status_code)
 
             data: Dict[str, Any] = r.json()
             if 'error' in data:
