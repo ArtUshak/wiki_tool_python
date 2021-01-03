@@ -936,13 +936,15 @@ def upload_pages(
     else:
         append = False
 
-    it: Iterable[pathlib.Path]
-    if first_page is None:
-        it = page_file_list
-    else:
-        it = itertools.islice(page_file_list, first_page, None)
+    length = len(page_file_list)
+    it: Iterable[pathlib.Path] = page_file_list
+    if first_page is not None:
+        it = itertools.islice(it, first_page, None)
+        length -= first_page
+        if length < 0:
+            length = 0
 
-    with click.progressbar(it, show_pos=True) as bar:
+    with click.progressbar(it, show_pos=True, length=length) as bar:
         for page_file_path in bar:
             upload_page_from_directory(
                 api, input_directory_path, page_file_path, prefix,
