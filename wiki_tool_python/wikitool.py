@@ -97,6 +97,23 @@ def get_mediawiki_api(
     )
 
 
+def get_mediawiki_api_with_auth(
+    api_url: str, ctx: click.Context
+) -> mediawiki.MediaWikiAPI:
+    """
+    Return MediaWiki API object for given version and API URL.
+
+    Return `None` if version is not implemented
+    """
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+    return api
+
+
 @click.command()
 @click.pass_context
 @click.argument('api_url', type=click.STRING)
@@ -255,12 +272,7 @@ def list_deletedrevs(
     file_entry_num: int, api_limit: int
 ):
     """List deleted revision from wikiproject in JSON format."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     file_number = 0
 
@@ -338,12 +350,7 @@ def delete_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Delete pages matching regular expression."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -421,12 +428,7 @@ def edit_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Edit pages matching filter expression, using new text."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -475,12 +477,7 @@ def edit_pages_clone_interwikis(
     reason: str, api_limit: int,
 ):
     """Add interwiki NEW to pages that contain interwiki OLD but not NEW."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     search_request = old
 
@@ -532,12 +529,7 @@ def replace_links(
     reason: str, api_limit: int,
 ):
     """Replace links to page OLD by links to page NEW."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     edited_num: int = 0
     processed_num: int = 0
@@ -625,12 +617,7 @@ def upload_image(
     ctx: click.Context, file_name: str, file: BinaryIO, api_url: str,
 ):
     """Upload image."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     api.upload_file(
         file_name, file, mimetypes.guess_type(file.name)[0]  # TODO
@@ -648,12 +635,7 @@ def upload_images(
     ctx: click.Context, list_file: TextIO, download_dir, api_url: str
 ):
     """Upload images listed in file."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
@@ -1045,12 +1027,7 @@ def upload_pages(
     prefix: str, summary: str, mode: str, first_page: Optional[int]
 ):
     """Create pages from txt files in input directory."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     input_directory_path = pathlib.Path(input_directory)
 
