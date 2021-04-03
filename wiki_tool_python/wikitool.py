@@ -9,6 +9,7 @@ import mimetypes
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import unicodedata
 from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
@@ -605,7 +606,7 @@ def download_images(ctx: click.Context, list_file: TextIO, download_dir):
                     shutil.copyfileobj(r.raw, image_file)
             elif r.status_code != 404:
                 click.echo(
-                    'Falied to download URL {} (status code: {}).'.format(
+                    'Failed to download URL {} (status code: {}).'.format(
                         r.url, r.status_code
                     )
                 )
@@ -666,7 +667,7 @@ def upload_images(
                     )
                 except mediawiki.MediaWikiAPIError as exc:
                     click.echo(
-                        'Falied to upload file {}: {}.'.format(
+                        'Failed to upload file {}: {}.'.format(
                             image_name, str(exc)
                         )
                     )
@@ -695,7 +696,7 @@ def read_user_data(input_file: TextIO) -> List[str]:
               type=click.Choice(['txt', 'mediawiki', 'json']),
               help='Output data format')
 @click.option('--redirect-regex-text',
-              default=r'^Перенаправление на \[\[.+\]\]$', type=click.STRING,
+              default=r'^Redirect to \[\[.+\]\]$', type=click.STRING,
               help='Regular expression to detect redirect creation')
 @click.option(
     '--api-limit', default=500, type=click.INT,
@@ -850,6 +851,131 @@ def list_directory_pages(input_directory: str, output_file: TextIO):
     )
 
 
+def get_progress_bar_text(
+    total_count: int, current_count: int, width: int
+) -> str:
+    """Generate progress bar string."""
+    filled_width: int = int(width * current_count / total_count)
+    bar = '[' + '#' * filled_width + ' ' * (width - filled_width) + ']'
+    label = f'{current_count: 9} / {total_count: 9}'
+    return bar + ' ' + label
+
+
+@click.command()
+@click.argument(
+    'list_file',
+    type=click.File(mode='rt')
+)
+@click.argument(
+    'input_directory',
+    type=click.Path()
+)
+@click.argument(
+    'output_script_file',
+    type=click.File(mode='wt')
+)
+@click.argument(
+    'log_file',
+    type=click.Path()
+)
+@click.option(
+    '--prefix', default='',
+    type=click.STRING,
+    help='Prefix for page titles'
+)
+@click.option(
+    '--rc/--no-rc', default=True,
+    help='Add --rc option to output script'
+)
+@click.option(
+    '--bot/--no-bot', default=True,
+    help='Add --bot option to output script'
+)
+@click.option(
+    '--user', type=click.STRING,
+    help='Add -u option to output script'
+)
+@click.option(
+    '--summary', type=click.STRING,
+    help='Add -s option to output script'
+)
+@click.option(
+    '--maintenance-directory', default='maintenance',
+    type=click.STRING,
+    help='Directory with importTextFiles.php'
+)
+@click.option(
+    '--show-progress-bar/--no-show-progress-bar', default=True,
+    help='Add progress bar display to output script'
+)
+@click.option(
+    '--first-page', type=click.INT,
+    help='First page number'
+)
+def generate_import_script(
+    list_file: TextIO, input_directory: str, output_script_file: TextIO,
+    log_file: str, prefix: str, rc: bool, bot: bool, user: Optional[str],
+    summary: Optional[str], maintenance_directory: str,
+    show_progress_bar: bool, first_page: Optional[int]
+):
+    """
+    Write script to import pages from list file using importTextFiles.php.
+    """
+    maintenance_directory_path = pathlib.Path(maintenance_directory)
+    input_directory_path = pathlib.Path(input_directory)
+
+    argv = [
+        'php', str(maintenance_directory_path.joinpath('importTextFiles.php'))
+    ]
+    if rc:
+        argv.append('--rc')
+    if bot:
+        argv.append('--bot')
+    if user:
+        argv += ['--user', user]
+    if summary:
+        argv += ['-s', summary]
+
+    page_file_list = list(map(pathlib.Path, json.load(list_file)))
+    current_directory_path = pathlib.Path('.')
+    output_progress_bar_width = 20
+
+    output_script_file.write('#!/bin/bash\n\n')
+
+    current_file_count = 0
+    total_file_count = len(page_file_list)
+    with click.progressbar(page_file_list, show_pos=True) as bar:
+        for page_file_path in bar:
+            if first_page and (current_file_count < first_page):
+                current_file_count += 1
+                continue
+            page_prefix: str
+            if page_file_path.parent == current_directory_path:
+                page_prefix = prefix
+            else:
+                page_prefix = prefix + str(page_file_path.parent) + '/'
+            line_argv = argv + [
+                '--prefix', page_prefix,
+                str(input_directory_path.joinpath(page_file_path))
+            ]
+            output_script_file.write(
+                shlex.join(line_argv)  # type: ignore
+                + ' >> ' + shlex.quote(log_file) + ' 2>&1 \n'
+            )
+            if show_progress_bar:
+                progress_bar_text = get_progress_bar_text(
+                    total_file_count, current_file_count + 1,
+                    output_progress_bar_width
+                )
+                progress_line_argv = [
+                    'echo', '-ne', progress_bar_text + '\\r'
+                ]
+                output_script_file.write(
+                    shlex.join(progress_line_argv) + '\n'  # type: ignore
+                )
+            current_file_count += 1
+
+
 def upload_page_from_directory(
     api: mediawiki.MediaWikiAPI, input_directory_path: pathlib.Path,
     page_file_path: pathlib.Path, prefix: str, summary: Optional[str],
@@ -966,6 +1092,7 @@ cli.add_command(upload_image)
 cli.add_command(upload_images)
 cli.add_command(votecount)
 cli.add_command(list_directory_pages)
+cli.add_command(generate_import_script)
 cli.add_command(upload_pages)
 
 
