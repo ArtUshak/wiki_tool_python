@@ -35,7 +35,7 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
             url_line = next(file_iterator)
             filename_line = next(file_iterator)
             if header_line.strip() != 'FILE2':
-                raise ValueError()
+                raise ValueError()  # TODO
             yield {
                 'name': title_line.strip(),
                 'url': url_line.strip(),
@@ -698,7 +698,7 @@ def votecount(
 
     namespaces_raw = json.load(namespacefile)
     if not isinstance(namespaces_raw, dict):
-        raise ValueError()
+        raise ValueError()  # TODO
     namespaces_edit_weights = namespaces_raw['edit_weights']
     namespaces_edit_weights = dict(
         map(lambda key: (int(key), namespaces_edit_weights[key]),
@@ -961,16 +961,22 @@ def generate_import_script(
 def upload_page_from_directory(
     api: mediawiki.MediaWikiAPI, input_directory_path: pathlib.Path,
     page_file_path: pathlib.Path, prefix: str, summary: Optional[str],
-    append: bool
+    append: bool, title: Optional[str]
 ):
     """
     Upload MediaWiki file as page with title according to path and prefix.
+
+    Title can be also overwritten using `title` parameter, but prefix will be
+    still applied.
     """
     with open(
         input_directory_path.joinpath(page_file_path), 'rt'
     ) as page_file:
         loaded_page_text = page_file.read()
-    page_title = prefix + str(page_file_path.with_suffix(''))
+    if title is None:
+        page_title = prefix + str(page_file_path.with_suffix(''))
+    else:
+        page_title = prefix + title
     edit_page_text = loaded_page_text
     if append:
         try:
@@ -1001,6 +1007,10 @@ def upload_page_from_directory(
     type=click.File(mode='rt')
 )
 @click.option(
+    '--dictionary/--no-dictionary', default=False,
+    help='Use dictionary file of pathes and titles instead of file list'
+)
+@click.option(
     '--prefix', default='',
     type=click.STRING,
     help='Prefix for page titles'
@@ -1024,14 +1034,30 @@ def upload_page_from_directory(
 )
 def upload_pages(
     ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
-    prefix: str, summary: str, mode: str, first_page: Optional[int]
+    dictionary: bool, prefix: str, summary: str, mode: str,
+    first_page: Optional[int]
 ):
     """Create pages from txt files in input directory."""
     api = get_mediawiki_api_with_auth(api_url, ctx)
 
     input_directory_path = pathlib.Path(input_directory)
 
-    page_file_list = list(map(pathlib.Path, json.load(list_file)))
+    if dictionary:
+        file_data = json.load(list_file)
+        if not isinstance(file_data, dict):
+            raise ValueError()
+        page_file_list = list(map(
+            lambda data: (data[1], pathlib.Path(data[0])),
+            file_data.items()
+        ))
+    else:
+        file_data = json.load(list_file)
+        if not isinstance(file_data, list):
+            raise ValueError()
+        page_file_list = list(map(
+            lambda file_name: (None, pathlib.Path(file_name)),
+            file_data
+        ))
 
     append: bool
     if mode == 'append':
@@ -1040,7 +1066,7 @@ def upload_pages(
         append = False
 
     length = len(page_file_list)
-    it: Iterable[pathlib.Path] = page_file_list
+    it: Iterable[Tuple[Optional[str], pathlib.Path]] = page_file_list
     if first_page is not None:
         it = itertools.islice(it, first_page, None)
         length -= first_page
@@ -1048,10 +1074,10 @@ def upload_pages(
             length = 0
 
     with click.progressbar(it, show_pos=True, length=length) as bar:
-        for page_file_path in bar:
+        for page_title, page_file_path in bar:
             upload_page_from_directory(
                 api, input_directory_path, page_file_path, prefix,
-                summary, append
+                summary, append, page_title
             )
 
 
