@@ -1032,10 +1032,14 @@ def upload_page_from_directory(
         'or overwrite old text with text from file'
     )
 )
+@click.option(
+    '--show-count/--no-show-count', default=False,
+    help='Display uploaded page count'
+)
 def upload_pages(
     ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
     dictionary: bool, prefix: str, summary: str, mode: str,
-    first_page: Optional[int]
+    first_page: Optional[int], show_count: bool
 ):
     """Create pages from txt files in input directory."""
     api = get_mediawiki_api_with_auth(api_url, ctx)
@@ -1073,12 +1077,15 @@ def upload_pages(
         if length < 0:
             length = 0
 
+    uploaded_pages_count = 0
     with click.progressbar(it, show_pos=True, length=length) as bar:
         for page_title, page_file_path in bar:
             upload_page_from_directory(
                 api, input_directory_path, page_file_path, prefix,
                 summary, append, page_title
             )
+            uploaded_pages_count += 1
+            click.echo(f'Uploaded {uploaded_pages_count} pages')
 
 
 cli.add_command(list_images)
