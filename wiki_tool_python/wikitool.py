@@ -9,6 +9,7 @@ import mimetypes
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import unicodedata
 from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
@@ -34,7 +35,7 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
             url_line = next(file_iterator)
             filename_line = next(file_iterator)
             if header_line.strip() != 'FILE2':
-                raise ValueError()
+                raise ValueError()  # TODO
             yield {
                 'name': title_line.strip(),
                 'url': url_line.strip(),
@@ -94,6 +95,23 @@ def get_mediawiki_api(
             mediawiki_version
         )
     )
+
+
+def get_mediawiki_api_with_auth(
+    api_url: str, ctx: click.Context
+) -> mediawiki.MediaWikiAPI:
+    """
+    Return MediaWiki API object for given version and API URL.
+
+    Return `None` if version is not implemented
+    """
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+
+    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api.api_login(user_credentials[0], user_credentials[1])
+    return api
 
 
 @click.command()
@@ -254,12 +272,7 @@ def list_deletedrevs(
     file_entry_num: int, api_limit: int
 ):
     """List deleted revision from wikiproject in JSON format."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     file_number = 0
 
@@ -337,12 +350,7 @@ def delete_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Delete pages matching regular expression."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -420,12 +428,7 @@ def edit_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Edit pages matching filter expression, using new text."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -474,12 +477,7 @@ def edit_pages_clone_interwikis(
     reason: str, api_limit: int,
 ):
     """Add interwiki NEW to pages that contain interwiki OLD but not NEW."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     search_request = old
 
@@ -531,12 +529,7 @@ def replace_links(
     reason: str, api_limit: int,
 ):
     """Replace links to page OLD by links to page NEW."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     edited_num: int = 0
     processed_num: int = 0
@@ -605,7 +598,7 @@ def download_images(ctx: click.Context, list_file: TextIO, download_dir):
                     shutil.copyfileobj(r.raw, image_file)
             elif r.status_code != 404:
                 click.echo(
-                    'Falied to download URL {} (status code: {}).'.format(
+                    'Failed to download URL {} (status code: {}).'.format(
                         r.url, r.status_code
                     )
                 )
@@ -624,12 +617,7 @@ def upload_image(
     ctx: click.Context, file_name: str, file: BinaryIO, api_url: str,
 ):
     """Upload image."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     api.upload_file(
         file_name, file, mimetypes.guess_type(file.name)[0]  # TODO
@@ -647,12 +635,7 @@ def upload_images(
     ctx: click.Context, list_file: TextIO, download_dir, api_url: str
 ):
     """Upload images listed in file."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
@@ -666,8 +649,8 @@ def upload_images(
                     )
                 except mediawiki.MediaWikiAPIError as exc:
                     click.echo(
-                        'Falied to upload file {}.'.format(
-                            image_name
+                        'Failed to upload file {}: {}.'.format(
+                            image_name, str(exc)
                         )
                     )
 
@@ -695,7 +678,7 @@ def read_user_data(input_file: TextIO) -> List[str]:
               type=click.Choice(['txt', 'mediawiki', 'json']),
               help='Output data format')
 @click.option('--redirect-regex-text',
-              default=r'^Перенаправление на \[\[.+\]\]$', type=click.STRING,
+              default=r'^Redirect to \[\[.+\]\]$', type=click.STRING,
               help='Regular expression to detect redirect creation')
 @click.option(
     '--api-limit', default=500, type=click.INT,
@@ -715,7 +698,7 @@ def votecount(
 
     namespaces_raw = json.load(namespacefile)
     if not isinstance(namespaces_raw, dict):
-        raise ValueError()
+        raise ValueError()  # TODO
     namespaces_edit_weights = namespaces_raw['edit_weights']
     namespaces_edit_weights = dict(
         map(lambda key: (int(key), namespaces_edit_weights[key]),
@@ -850,19 +833,150 @@ def list_directory_pages(input_directory: str, output_file: TextIO):
     )
 
 
+def get_progress_bar_text(
+    total_count: int, current_count: int, width: int
+) -> str:
+    """Generate progress bar string."""
+    filled_width: int = int(width * current_count / total_count)
+    bar = '[' + '#' * filled_width + ' ' * (width - filled_width) + ']'
+    label = f'{current_count: 9} / {total_count: 9}'
+    return bar + ' ' + label
+
+
+@click.command()
+@click.argument(
+    'list_file',
+    type=click.File(mode='rt')
+)
+@click.argument(
+    'input_directory',
+    type=click.Path()
+)
+@click.argument(
+    'output_script_file',
+    type=click.File(mode='wt')
+)
+@click.argument(
+    'log_file',
+    type=click.Path()
+)
+@click.option(
+    '--prefix', default='',
+    type=click.STRING,
+    help='Prefix for page titles'
+)
+@click.option(
+    '--rc/--no-rc', default=True,
+    help='Add --rc option to output script'
+)
+@click.option(
+    '--bot/--no-bot', default=True,
+    help='Add --bot option to output script'
+)
+@click.option(
+    '--user', type=click.STRING,
+    help='Add -u option to output script'
+)
+@click.option(
+    '--summary', type=click.STRING,
+    help='Add -s option to output script'
+)
+@click.option(
+    '--maintenance-directory', default='maintenance',
+    type=click.STRING,
+    help='Directory with importTextFiles.php'
+)
+@click.option(
+    '--show-progress-bar/--no-show-progress-bar', default=True,
+    help='Add progress bar display to output script'
+)
+@click.option(
+    '--first-page', type=click.INT,
+    help='First page number'
+)
+def generate_import_script(
+    list_file: TextIO, input_directory: str, output_script_file: TextIO,
+    log_file: str, prefix: str, rc: bool, bot: bool, user: Optional[str],
+    summary: Optional[str], maintenance_directory: str,
+    show_progress_bar: bool, first_page: Optional[int]
+):
+    """
+    Write script to import pages from list file using importTextFiles.php.
+    """
+    maintenance_directory_path = pathlib.Path(maintenance_directory)
+    input_directory_path = pathlib.Path(input_directory)
+
+    argv = [
+        'php', str(maintenance_directory_path.joinpath('importTextFiles.php'))
+    ]
+    if rc:
+        argv.append('--rc')
+    if bot:
+        argv.append('--bot')
+    if user:
+        argv += ['--user', user]
+    if summary:
+        argv += ['-s', summary]
+
+    page_file_list = list(map(pathlib.Path, json.load(list_file)))
+    current_directory_path = pathlib.Path('.')
+    output_progress_bar_width = 20
+
+    output_script_file.write('#!/bin/bash\n\n')
+
+    current_file_count = 0
+    total_file_count = len(page_file_list)
+    with click.progressbar(page_file_list, show_pos=True) as bar:
+        for page_file_path in bar:
+            if first_page and (current_file_count < first_page):
+                current_file_count += 1
+                continue
+            page_prefix: str
+            if page_file_path.parent == current_directory_path:
+                page_prefix = prefix
+            else:
+                page_prefix = prefix + str(page_file_path.parent) + '/'
+            line_argv = argv + [
+                '--prefix', page_prefix,
+                str(input_directory_path.joinpath(page_file_path))
+            ]
+            output_script_file.write(
+                shlex.join(line_argv)  # type: ignore
+                + ' >> ' + shlex.quote(log_file) + ' 2>&1 \n'
+            )
+            if show_progress_bar:
+                progress_bar_text = get_progress_bar_text(
+                    total_file_count, current_file_count + 1,
+                    output_progress_bar_width
+                )
+                progress_line_argv = [
+                    'echo', '-ne', progress_bar_text + '\\r'
+                ]
+                output_script_file.write(
+                    shlex.join(progress_line_argv) + '\n'  # type: ignore
+                )
+            current_file_count += 1
+
+
 def upload_page_from_directory(
     api: mediawiki.MediaWikiAPI, input_directory_path: pathlib.Path,
     page_file_path: pathlib.Path, prefix: str, summary: Optional[str],
-    append: bool
+    append: bool, title: Optional[str]
 ):
     """
     Upload MediaWiki file as page with title according to path and prefix.
+
+    Title can be also overwritten using `title` parameter, but prefix will be
+    still applied.
     """
     with open(
         input_directory_path.joinpath(page_file_path), 'rt'
     ) as page_file:
         loaded_page_text = page_file.read()
-    page_title = prefix + str(page_file_path.with_suffix(''))
+    if title is None:
+        page_title = prefix + str(page_file_path.with_suffix(''))
+    else:
+        page_title = prefix + title
     edit_page_text = loaded_page_text
     if append:
         try:
@@ -893,6 +1007,10 @@ def upload_page_from_directory(
     type=click.File(mode='rt')
 )
 @click.option(
+    '--dictionary/--no-dictionary', default=False,
+    help='Use dictionary file of pathes and titles instead of file list'
+)
+@click.option(
     '--prefix', default='',
     type=click.STRING,
     help='Prefix for page titles'
@@ -914,21 +1032,36 @@ def upload_page_from_directory(
         'or overwrite old text with text from file'
     )
 )
+@click.option(
+    '--show-count/--no-show-count', default=False,
+    help='Display uploaded page count'
+)
 def upload_pages(
     ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
-    prefix: str, summary: str, mode: str, first_page: Optional[int]
+    dictionary: bool, prefix: str, summary: str, mode: str,
+    first_page: Optional[int], show_count: bool
 ):
     """Create pages from txt files in input directory."""
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api_with_auth(api_url, ctx)
 
     input_directory_path = pathlib.Path(input_directory)
 
-    page_file_list = list(map(pathlib.Path, json.load(list_file)))
+    if dictionary:
+        file_data = json.load(list_file)
+        if not isinstance(file_data, dict):
+            raise ValueError()
+        page_file_list = list(map(
+            lambda data: (data[1], pathlib.Path(data[0])),
+            file_data.items()
+        ))
+    else:
+        file_data = json.load(list_file)
+        if not isinstance(file_data, list):
+            raise ValueError()
+        page_file_list = list(map(
+            lambda file_name: (None, pathlib.Path(file_name)),
+            file_data
+        ))
 
     append: bool
     if mode == 'append':
@@ -937,19 +1070,22 @@ def upload_pages(
         append = False
 
     length = len(page_file_list)
-    it: Iterable[pathlib.Path] = page_file_list
+    it: Iterable[Tuple[Optional[str], pathlib.Path]] = page_file_list
     if first_page is not None:
         it = itertools.islice(it, first_page, None)
         length -= first_page
         if length < 0:
             length = 0
 
+    uploaded_pages_count = 0
     with click.progressbar(it, show_pos=True, length=length) as bar:
-        for page_file_path in bar:
+        for page_title, page_file_path in bar:
             upload_page_from_directory(
                 api, input_directory_path, page_file_path, prefix,
-                summary, append
+                summary, append, page_title
             )
+            uploaded_pages_count += 1
+            click.echo(f'Uploaded {uploaded_pages_count} pages')
 
 
 cli.add_command(list_images)
@@ -966,6 +1102,7 @@ cli.add_command(upload_image)
 cli.add_command(upload_images)
 cli.add_command(votecount)
 cli.add_command(list_directory_pages)
+cli.add_command(generate_import_script)
 cli.add_command(upload_pages)
 
 
