@@ -122,7 +122,7 @@ def list_images(
         url: str = image['url']
         click.echo(
             'FILE2\n{}\n{}\n{}'.format(
-                title, url, filename
+                title.encode('cp1251', errors="ignore").decode('cp1251'), url, filename.encode('cp1251', errors="ignore").decode('cp1251')
             ),
             file=output_file
         )
@@ -134,7 +134,7 @@ def list_images(
 @click.argument('api_url', type=click.STRING)
 @click.argument('category', type=click.STRING)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write image list'
 )
 @click.option(
@@ -182,7 +182,7 @@ def list_category_images(
 @click.pass_context
 @click.argument('api_url', type=click.STRING)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write page list'
 )
 @click.option(
@@ -209,7 +209,7 @@ def list_pages(
 @click.argument('api_url', type=click.STRING)
 @click.argument('namespace', type=click.INT)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write page list'
 )
 @click.option(
@@ -278,7 +278,7 @@ def list_deletedrevs(
                 output_file_path = os.path.join(
                     output_directory, 'entry-{}.json'.format(file_number)
                 )
-                with open(output_file_path, 'wt') as output_file:
+                with open(output_file_path, 'wt', encoding='utf-8') as output_file:
                     json.dump(
                         chunk,
                         output_file,
@@ -292,7 +292,7 @@ def list_deletedrevs(
         output_file_path = os.path.join(
             output_directory, 'entry-{}.json'.format(file_number)
         )
-        with open(output_file_path, 'wt') as output_file:
+        with open(output_file_path, 'wt', encoding='utf-8') as output_file:
             json.dump(
                 chunk,
                 output_file,
@@ -666,8 +666,8 @@ def upload_images(
                     )
                 except mediawiki.MediaWikiAPIError as exc:
                     click.echo(
-                        'Falied to upload file {}: {}.'.format(
-                            image_name, str(exc)
+                        'Falied to upload file {}.'.format(
+                            image_name
                         )
                     )
 
@@ -836,7 +836,7 @@ def get_directory_page_list(
 )
 @click.argument(
     'output_file',
-    type=click.File(mode='wt')
+    type=click.File(mode='wt', encoding='utf-8')
 )
 def list_directory_pages(input_directory: str, output_file: TextIO):
     """Write list of `.txt` file pathes in directory to JSON file."""
