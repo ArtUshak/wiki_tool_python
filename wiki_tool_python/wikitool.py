@@ -125,11 +125,20 @@ def get_mediawiki_api_with_auth(
     '--api-limit', default=500, type=click.INT,
     help='Maximum number of entries per API request'
 )
+@click.option(
+    '--confine-encoding', default=None, type=click.STRING,
+    help='Encoding to confine file name to'
+)
 def list_images(
     ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int,
+    confine_encoding: Optional[str]
 ):
     """List images from wikiproject (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+    api.api_login(user_credentials[0], user_credentials[1])
     i: int = 0
     for image in api.get_image_list(api_limit):
         title_regex = re.match(r'.+?\:(.*)', image['title'])
@@ -137,11 +146,12 @@ def list_images(
             raise ValueError()  # TODO
         title: str = title_regex.group(1)
         filename: str = get_safe_filename(title, i)
+        if confine_encoding is not None:
+            title = confine_to_encoding(title, confine_encoding)
+            filename = confine_to_encoding(filename, confine_encoding)
         url: str = image['url']
         click.echo(
-            'FILE2\n{}\n{}\n{}'.format(
-                title.encode('cp1251', errors="ignore").decode('cp1251'), url, filename.encode('cp1251', errors="ignore").decode('cp1251')
-            ),
+            'FILE2\n{}\n{}\n{}'.format(title, url, filename),
             file=output_file
         )
         i += 1
@@ -163,9 +173,13 @@ def list_images(
     '--api-image-ids-limit', default=50, type=click.INT,
     help='Maximum number of image IDs passed per API request'
 )
+@click.option(
+    '--confine-encoding', default=None, type=click.STRING,
+    help='Encoding to confine file name to'
+)
 def list_category_images(
     ctx: click.Context, api_url: str, category: str, output_file: TextIO,
-    api_limit: int, api_image_ids_limit: int,
+    api_limit: int, api_image_ids_limit: int, confine_encoding: Optional[str]
 ):
     """List images from category (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -186,11 +200,12 @@ def list_category_images(
                 raise ValueError()  # TODO
             title: str = title_regex.group(1)
             filename: str = get_safe_filename(title, i)
+            if confine_encoding is not None:
+                title = confine_to_encoding(title, confine_encoding)
+                filename = confine_to_encoding(filename, confine_encoding)
             url: str = image_data['url']
             click.echo(
-                'FILE2\n{}\n{}\n{}'.format(
-                    title, url, filename
-                ),
+                'FILE2\n{}\n{}\n{}'.format(title, url, filename),
                 file=output_file
             )
             i += 1
@@ -567,6 +582,13 @@ def replace_links(
         f'{processed_num} pages processed, {edited_num} pages edited, '
         f'{protected_num} were not edited due to protection level'
     )
+
+
+def confine_to_encoding(value: str, confine_encoding: str) -> str:
+    """Convert string to encoding, drop invalid characters and convert back."""
+    return value.encode(
+        confine_encoding, errors='ignore'
+    ).decode(confine_encoding)
 
 
 def get_safe_filename(value: str, i: int) -> str:
