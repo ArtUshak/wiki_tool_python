@@ -127,7 +127,10 @@ def get_mediawiki_api_with_auth(
 )
 @click.option(
     '--confine-encoding', default=None, type=click.STRING,
-    help='Encoding to confine file name to'
+    help=(
+        'Encoding to confine file name to '
+        '(drop characters outside that encoding)'
+    )
 )
 def list_images(
     ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int,
@@ -175,7 +178,10 @@ def list_images(
 )
 @click.option(
     '--confine-encoding', default=None, type=click.STRING,
-    help='Encoding to confine file name to'
+    help=(
+        'Encoding to confine file name to '
+        '(drop characters outside that encoding)'
+    )
 )
 def list_category_images(
     ctx: click.Context, api_url: str, category: str, output_file: TextIO,

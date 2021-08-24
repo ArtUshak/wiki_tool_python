@@ -87,6 +87,8 @@ The same format is used by `download-images` command.
 
 `--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
 
+`--confine-encoding TEXT` Encoding to confine file name to (drop characters outside that encoding)
+
 #### Command `list-images`: example
 
 ```sh
@@ -119,6 +121,8 @@ List wikiproject images (titles and URLs) from specific category in the same for
 `--api-limit INTEGER` Maximum number of entries per API request (default value is 500).
 
 `--api-image-ids-limit INTEGER` Maximum number of image IDs per API request (default value is 50).
+
+`--confine-encoding TEXT` Encoding to confine file name to (drop characters outside that encoding)
 
 #### Command `list-category-images`: example
 
