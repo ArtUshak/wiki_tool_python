@@ -435,7 +435,7 @@ Upload images listed in file `LIST_FILE` (file should be in the same format as o
 
 #### Command `upload-images`: options
 
-No specific options.
+`--skip-nonexistent/--no-skip-nonexistent` Do not fail on non-existent files, skip them instead
 
 #### Command `upload-images`: example
 

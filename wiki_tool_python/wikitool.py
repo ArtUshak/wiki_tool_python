@@ -314,10 +314,12 @@ def list_namespace_pages(
     help='Maximum number of entries per API request'
 )
 def list_deletedrevs(
-    ctx: click.Context, output_directory, api_url: str, all_namespaces: bool,
-    file_entry_num: int, api_limit: int
+    ctx: click.Context, output_directory: str, api_url: str,
+    all_namespaces: bool, file_entry_num: int, api_limit: int
 ):
     """List deleted revision from wikiproject in JSON format."""
+    output_directory_path = pathlib.Path(output_directory)
+
     api = get_mediawiki_api_with_auth(ctx, api_url)
 
     file_number = 0
@@ -334,8 +336,8 @@ def list_deletedrevs(
             chunk.append(revision)
 
             if len(chunk) == file_entry_num:
-                output_file_path = os.path.join(
-                    output_directory, 'entry-{}.json'.format(file_number)
+                output_file_path = output_directory_path.joinpath(
+                    f'entry-{file_number}.json'
                 )
                 with open(
                     output_file_path, 'wt', encoding='utf-8'
@@ -350,8 +352,8 @@ def list_deletedrevs(
                 file_number += 1
 
     if len(chunk) > 0:
-        output_file_path = os.path.join(
-            output_directory, 'entry-{}.json'.format(file_number)
+        output_file_path = output_directory_path.joinpath(
+            f'entry-{file_number}.json'
         )
         with open(output_file_path, 'wt', encoding='utf-8') as output_file:
             json.dump(
@@ -641,13 +643,15 @@ def get_safe_filename(value: str, i: int) -> str:
 @click.argument(
     'download_dir', type=click.Path(file_okay=False, dir_okay=True)
 )
-def download_images(ctx: click.Context, list_file: TextIO, download_dir):
+def download_images(ctx: click.Context, list_file: TextIO, download_dir: str):
     """Download images listed in file."""
+    download_dir_path = pathlib.Path(download_dir)
+
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
             r = requests.get(image['url'], stream=True)
             if r.status_code == 200:
-                image_filename = os.path.join(download_dir, image['filename'])
+                image_filename = download_dir_path.joinpath(image['filename'])
                 with open(image_filename, 'wb') as image_file:
                     r.raw.decode_content = True
                     shutil.copyfileobj(r.raw, image_file)
@@ -686,16 +690,33 @@ def upload_image(
     'download_dir', type=click.Path(file_okay=False, dir_okay=True)
 )
 @click.argument('api_url', type=click.STRING)
+@click.option(
+    '--skip-nonexistent/--no-skip-nonexistent', default=True,
+    help='Do not fail on non-existent files, skip them instead'
+)
 def upload_images(
-    ctx: click.Context, list_file: TextIO, download_dir, api_url: str
+    ctx: click.Context, list_file: TextIO, download_dir: str, api_url: str,
+    skip_nonexistent: bool
 ):
     """Upload images listed in file."""
+    download_dir_path = pathlib.Path(download_dir)
+
     api = get_mediawiki_api_with_auth(ctx, api_url)
+
+    skipped_filenames: List[str] = []
 
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
             image_name: str = image['name']
-            image_filename: str = os.path.join(download_dir, image['filename'])
+            image_filename = download_dir_path.joinpath(
+                image['filename']
+            )
+            if not image_filename.exists():
+                if skip_nonexistent:
+                    click.echo(f'File {image_name} not found')
+                    skipped_filenames.append(image_name)
+            else:
+                raise click.ClickException(f'File {image_name} not found')
             with open(image_filename, 'rb') as image_file:
                 try:
                     api.upload_file(
@@ -708,6 +729,14 @@ def upload_images(
                             image_name, str(exc)
                         )
                     )
+                except FileNotFoundError:
+                    if skip_nonexistent:
+                        click.echo('Warning')
+
+    if len(skipped_filenames):
+        click.echo('Skipped (non-existent) files:')
+        for skipped_filename in skipped_filenames:
+            click.echo(skipped_filename)
 
 
 def read_user_data(input_file: TextIO) -> List[str]:
