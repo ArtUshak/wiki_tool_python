@@ -715,6 +715,7 @@ def upload_images(
                 if skip_nonexistent:
                     click.echo(f'File {image_name} not found')
                     skipped_filenames.append(image_name)
+                    continue
             else:
                 raise click.ClickException(f'File {image_name} not found')
             with open(image_filename, 'rb') as image_file:
