@@ -138,7 +138,9 @@ def get_mediawiki_api_with_auth(
         raise click.ClickException('User credentials not given')
     user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
 
-    api = get_mediawiki_api_wihtout_login(ctx, api_url)
+    api = get_mediawiki_api_wihtout_login(
+        ctx.obj['MEDIAWIKI_VERSION'], api_url
+    )
     api.api_login(user_credentials[0], user_credentials[1])
     return api
 
