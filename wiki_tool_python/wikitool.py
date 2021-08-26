@@ -125,11 +125,23 @@ def get_mediawiki_api_with_auth(
     '--api-limit', default=500, type=click.INT,
     help='Maximum number of entries per API request'
 )
+@click.option(
+    '--confine-encoding', default=None, type=click.STRING,
+    help=(
+        'Encoding to confine file name to '
+        '(drop characters outside that encoding)'
+    )
+)
 def list_images(
     ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int,
+    confine_encoding: Optional[str]
 ):
     """List images from wikiproject (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+        raise click.ClickException('User credentials not given')
+    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+    api.api_login(user_credentials[0], user_credentials[1])
     i: int = 0
     for image in api.get_image_list(api_limit):
         title_regex = re.match(r'.+?\:(.*)', image['title'])
@@ -137,11 +149,12 @@ def list_images(
             raise ValueError()  # TODO
         title: str = title_regex.group(1)
         filename: str = get_safe_filename(title, i)
+        if confine_encoding is not None:
+            title = confine_to_encoding(title, confine_encoding)
+            filename = confine_to_encoding(filename, confine_encoding)
         url: str = image['url']
         click.echo(
-            'FILE2\n{}\n{}\n{}'.format(
-                title, url, filename
-            ),
+            'FILE2\n{}\n{}\n{}'.format(title, url, filename),
             file=output_file
         )
         i += 1
@@ -152,7 +165,7 @@ def list_images(
 @click.argument('api_url', type=click.STRING)
 @click.argument('category', type=click.STRING)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write image list'
 )
 @click.option(
@@ -163,9 +176,16 @@ def list_images(
     '--api-image-ids-limit', default=50, type=click.INT,
     help='Maximum number of image IDs passed per API request'
 )
+@click.option(
+    '--confine-encoding', default=None, type=click.STRING,
+    help=(
+        'Encoding to confine file name to '
+        '(drop characters outside that encoding)'
+    )
+)
 def list_category_images(
     ctx: click.Context, api_url: str, category: str, output_file: TextIO,
-    api_limit: int, api_image_ids_limit: int,
+    api_limit: int, api_image_ids_limit: int, confine_encoding: Optional[str]
 ):
     """List images from category (titles and URLs)."""
     api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
@@ -186,11 +206,12 @@ def list_category_images(
                 raise ValueError()  # TODO
             title: str = title_regex.group(1)
             filename: str = get_safe_filename(title, i)
+            if confine_encoding is not None:
+                title = confine_to_encoding(title, confine_encoding)
+                filename = confine_to_encoding(filename, confine_encoding)
             url: str = image_data['url']
             click.echo(
-                'FILE2\n{}\n{}\n{}'.format(
-                    title, url, filename
-                ),
+                'FILE2\n{}\n{}\n{}'.format(title, url, filename),
                 file=output_file
             )
             i += 1
@@ -200,7 +221,7 @@ def list_category_images(
 @click.pass_context
 @click.argument('api_url', type=click.STRING)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write page list'
 )
 @click.option(
@@ -227,7 +248,7 @@ def list_pages(
 @click.argument('api_url', type=click.STRING)
 @click.argument('namespace', type=click.INT)
 @click.option(
-    '--output-file', type=click.File('wt'),
+    '--output-file', type=click.File('wt', encoding='utf-8'),
     help='Text file to write page list'
 )
 @click.option(
@@ -291,7 +312,7 @@ def list_deletedrevs(
                 output_file_path = os.path.join(
                     output_directory, 'entry-{}.json'.format(file_number)
                 )
-                with open(output_file_path, 'wt') as output_file:
+                with open(output_file_path, 'wt', encoding='utf-8') as output_file:
                     json.dump(
                         chunk,
                         output_file,
@@ -305,7 +326,7 @@ def list_deletedrevs(
         output_file_path = os.path.join(
             output_directory, 'entry-{}.json'.format(file_number)
         )
-        with open(output_file_path, 'wt') as output_file:
+        with open(output_file_path, 'wt', encoding='utf-8') as output_file:
             json.dump(
                 chunk,
                 output_file,
@@ -569,6 +590,13 @@ def replace_links(
     )
 
 
+def confine_to_encoding(value: str, confine_encoding: str) -> str:
+    """Convert string to encoding, drop invalid characters and convert back."""
+    return value.encode(
+        confine_encoding, errors='ignore'
+    ).decode(confine_encoding)
+
+
 def get_safe_filename(value: str, i: int) -> str:
     """
     Transform file name so it will be NTFS-compliant.
@@ -819,7 +847,7 @@ def get_directory_page_list(
 )
 @click.argument(
     'output_file',
-    type=click.File(mode='wt')
+    type=click.File(mode='wt', encoding='utf-8')
 )
 def list_directory_pages(input_directory: str, output_file: TextIO):
     """Write list of `.txt` file pathes in directory to JSON file."""
