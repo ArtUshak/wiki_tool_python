@@ -17,8 +17,10 @@ from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
 
 import click
 import requests
+from mediawiki_1_19 import MediaWikiAPI1_19
 
 import mediawiki
+from mediawiki_1_31 import MediaWikiAPI1_31
 
 
 def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
@@ -51,12 +53,16 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
     help='LOGIN:PASSWORD pair for MediaWiki'
 )
 @click.option(
+    '--login/--no-login', default=False,
+    help='Log in even for method that do not require authentication'
+)
+@click.option(
     '--mediawiki-version', default='1.31', type=click.STRING,
     help='MediaWiki version, default is 1.31'
 )
 @click.pass_context
 def cli(
-    ctx: click.Context, credentials: Optional[str],
+    ctx: click.Context, credentials: Optional[str], login: bool,
     mediawiki_version: Optional[str]
 ):
     """Run MediaWiki script for exporting data and downloading images."""
@@ -76,20 +82,21 @@ def cli(
         ctx.obj['MEDIAWIKI_CREDENTIALS'] = tuple(credentials_list)
 
     ctx.obj['MEDIAWIKI_VERSION'] = mediawiki_version
+    ctx.obj['MEDIAWIKI_SHOULD_LOGIN'] = login
 
 
-def get_mediawiki_api(
+def get_mediawiki_api_wihtout_login(
     mediawiki_version: str, api_url: str
 ) -> mediawiki.MediaWikiAPI:
     """
     Return MediaWiki API object for given version and API URL.
 
-    Return `None` if version is not implemented
+    Raise exception if version is not implemented.
     """
     if mediawiki_version == '1.31':
-        return mediawiki.MediaWikiAPI1_31(api_url)
+        return MediaWikiAPI1_31(api_url)
     if mediawiki_version == '1.19':
-        return mediawiki.MediaWikiAPI1_19(api_url)
+        return MediaWikiAPI1_19(api_url)
     raise click.ClickException(
         'MediaWiki API version {} is not yet implemented'.format(
             mediawiki_version
@@ -97,8 +104,30 @@ def get_mediawiki_api(
     )
 
 
+def get_mediawiki_api(
+    ctx: click.Context, api_url: str
+) -> mediawiki.MediaWikiAPI:
+    """
+    Return MediaWiki API object for given version and API URL.
+
+    Raise exception if version is not implemented.
+    Log in if required by user.
+    """
+    api = get_mediawiki_api_wihtout_login(
+        ctx.obj['MEDIAWIKI_VERSION'], api_url
+    )
+
+    if ctx.obj['MEDIAWIKI_SHOULD_LOGIN']:
+        if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
+            raise click.ClickException('User credentials not given')
+        user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
+        api.api_login(user_credentials[0], user_credentials[1])
+
+    return api
+
+
 def get_mediawiki_api_with_auth(
-    api_url: str, ctx: click.Context
+    ctx: click.Context, api_url: str
 ) -> mediawiki.MediaWikiAPI:
     """
     Return MediaWiki API object for given version and API URL.
@@ -109,7 +138,7 @@ def get_mediawiki_api_with_auth(
         raise click.ClickException('User credentials not given')
     user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
 
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api = get_mediawiki_api_wihtout_login(ctx, api_url)
     api.api_login(user_credentials[0], user_credentials[1])
     return api
 
@@ -137,11 +166,7 @@ def list_images(
     confine_encoding: Optional[str]
 ):
     """List images from wikiproject (titles and URLs)."""
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
-    if 'MEDIAWIKI_CREDENTIALS' not in ctx.obj:
-        raise click.ClickException('User credentials not given')
-    user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
-    api.api_login(user_credentials[0], user_credentials[1])
+    api = get_mediawiki_api(ctx, api_url)
     i: int = 0
     for image in api.get_image_list(api_limit):
         title_regex = re.match(r'.+?\:(.*)', image['title'])
@@ -188,7 +213,7 @@ def list_category_images(
     api_limit: int, api_image_ids_limit: int, confine_encoding: Optional[str]
 ):
     """List images from category (titles and URLs)."""
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api = get_mediawiki_api(ctx, api_url)
     page_ids: List[int] = list(map(
         lambda page_data: page_data['pageid'],
         api.get_category_members(
@@ -232,7 +257,7 @@ def list_pages(
     ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int
 ):
     """List page names from wikiproject."""
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api = get_mediawiki_api(ctx, api_url)
     for namespace in api.get_namespace_list():
         for page_name in api.get_page_list(
             namespace, api_limit
@@ -260,7 +285,7 @@ def list_namespace_pages(
     api_limit: int
 ):
     """List page names from wikiproject."""
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api = get_mediawiki_api(ctx, api_url)
     for page_name in api.get_page_list(
         namespace, api_limit
     ):
@@ -293,7 +318,7 @@ def list_deletedrevs(
     file_entry_num: int, api_limit: int
 ):
     """List deleted revision from wikiproject in JSON format."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     file_number = 0
 
@@ -312,7 +337,9 @@ def list_deletedrevs(
                 output_file_path = os.path.join(
                     output_directory, 'entry-{}.json'.format(file_number)
                 )
-                with open(output_file_path, 'wt', encoding='utf-8') as output_file:
+                with open(
+                    output_file_path, 'wt', encoding='utf-8'
+                ) as output_file:
                     json.dump(
                         chunk,
                         output_file,
@@ -371,7 +398,7 @@ def delete_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Delete pages matching regular expression."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -449,7 +476,7 @@ def edit_pages(
     reason: str, api_limit: int, namespace: List[int]
 ):
     """Edit pages matching filter expression, using new text."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     if first_page_namespace is not None:
         namespace = namespace[namespace.index(first_page_namespace):]
@@ -498,7 +525,7 @@ def edit_pages_clone_interwikis(
     reason: str, api_limit: int,
 ):
     """Add interwiki NEW to pages that contain interwiki OLD but not NEW."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     search_request = old
 
@@ -550,7 +577,7 @@ def replace_links(
     reason: str, api_limit: int,
 ):
     """Replace links to page OLD by links to page NEW."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     edited_num: int = 0
     processed_num: int = 0
@@ -645,7 +672,7 @@ def upload_image(
     ctx: click.Context, file_name: str, file: BinaryIO, api_url: str,
 ):
     """Upload image."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     api.upload_file(
         file_name, file, mimetypes.guess_type(file.name)[0]  # TODO
@@ -663,7 +690,7 @@ def upload_images(
     ctx: click.Context, list_file: TextIO, download_dir, api_url: str
 ):
     """Upload images listed in file."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     with click.progressbar(list(read_image_list(list_file))) as bar:
         for image in bar:
@@ -718,7 +745,7 @@ def votecount(
     output_format: str, api_limit: int, redirect_regex_text: str,
 ):
     """Get edit counts for users from input file, and calculate vote power."""
-    api = get_mediawiki_api(ctx.obj['MEDIAWIKI_VERSION'], api_url)
+    api = get_mediawiki_api(ctx, api_url)
 
     regex_redirect = re.compile(redirect_regex_text)
 
@@ -1070,7 +1097,7 @@ def upload_pages(
     first_page: Optional[int], show_count: bool
 ):
     """Create pages from txt files in input directory."""
-    api = get_mediawiki_api_with_auth(api_url, ctx)
+    api = get_mediawiki_api_with_auth(ctx, api_url)
 
     input_directory_path = pathlib.Path(input_directory)
 

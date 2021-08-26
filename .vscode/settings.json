@@ -4,7 +4,7 @@
     "python.linting.flake8CategorySeverity.W": "Warning",
     "python.linting.flake8CategorySeverity.E": "Error",
     "python.linting.flake8CategorySeverity.F": "Error",
-    "python.linting.mypyEnabled": true,
+    "python.linting.mypyEnabled": false,
     "python.sortImports.path": "isort",
     "cSpell.words": [
         "absurdopedia",

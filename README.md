@@ -58,6 +58,10 @@ Some commands require authentication. To tell login and password, use option `--
 
 To select MediaWiki version, use option `--mediawiki-version VERSION`. Versions `1.31` and `1.19` are allowed, but `1.19` is not fully supported. Version `1.31` is default.
 
+### Force login
+
+To log in if it is not mandatory for API method, use option `--login`.
+
 ### MediaWiki API URL
 
 Parameter `API_URL` should be URL of MediaWiki API without `/api.php`, for example [https://wow.gamepedia.com](https://wow.gamepedia.com) or [https://absurdopedia.wiki/w](https://absurdopedia.wiki/w).
