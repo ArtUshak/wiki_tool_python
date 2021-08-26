@@ -10,7 +10,7 @@ import requests_toolbelt
 NAMESPACE_IMAGES = 6
 
 
-class MediaWikiAPIMiscError(click.ClickException):
+class MediaWikiAPIError(click.ClickException):
     """MediaWiki API error."""
 
 
