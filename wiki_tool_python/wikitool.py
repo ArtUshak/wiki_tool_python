@@ -716,8 +716,8 @@ def upload_images(
                     click.echo(f'File {image_name} not found')
                     skipped_filenames.append(image_name)
                     continue
-            else:
-                raise click.ClickException(f'File {image_name} not found')
+                else:
+                    raise click.ClickException(f'File {image_name} not found')
             with open(image_filename, 'rb') as image_file:
                 try:
                     api.upload_file(
