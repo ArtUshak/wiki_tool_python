@@ -10,7 +10,7 @@ import requests_toolbelt
 NAMESPACE_IMAGES = 6
 
 
-class MediaWikiAPIError(click.ClickException):
+class MediaWikiAPIMiscError(click.ClickException):
     """MediaWiki API error."""
 
 
@@ -31,6 +31,17 @@ class CanNotDelete(MediaWikiAPIError):
 
 class PageProtected(MediaWikiAPIError):
     """Page can not be edited because it is protected."""
+
+
+class MediaWikiAPIMiscError(MediaWikiAPIError):
+    """MediaWiki API error."""
+
+    data: Any
+
+    def __init__(self, data: Any):
+        """Initialize."""
+        self.data = data
+        super().__init__(str(data))
 
 
 class MediaWikiAPI(ABC):
@@ -173,7 +184,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         data = r.json()
         if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
         namespaces = data['query']['namespaces']
 
         return list(
@@ -217,7 +228,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         data = r.json()
         if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
 
         while True:
             current_params = params.copy()
@@ -228,7 +239,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             user_contribs = data['query']['usercontribs']
 
             for user_contrib in user_contribs:
@@ -269,7 +280,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             images = data['query']['allimages']
 
             for image_data in images:
@@ -315,7 +326,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             pages = data['query']['allpages']
 
             for page_data in pages:
@@ -370,7 +381,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             deletedrevs = data['query']['deletedrevs']
 
             for deletedrev_data in deletedrevs:
@@ -407,7 +418,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         if 'error' in data:
             if data['error']['code'] == 'cantdelete':
                 raise CanNotDelete(data['error']['info'])
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
 
     def edit_page(
             self, page_name: str, text: str, summary: Optional[str] = None
@@ -433,7 +444,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         if 'error' in data:
             if data['error']['code'] == 'protectedpage':
                 raise PageProtected(data['error'])
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
 
     def upload_file(
         self, file_name: str, file: BinaryIO, mime_type: Optional[str],
@@ -458,9 +469,9 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         data = r.json()
         if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
         if 'warning' in data:
-            raise MediaWikiAPIError(data['warning'])
+            raise MediaWikiAPIMiscError(data['warning'])
 
         return dict(map(
             lambda page_data: (
@@ -494,7 +505,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
             data = r.json()
             if 'error' in data:
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             backlinks = data['query']['backlinks']
 
             for backlink in backlinks:
@@ -519,15 +530,15 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         data1 = r1.json()
         if 'error' in data1:
-            raise MediaWikiAPIError(data1['error'])
+            raise MediaWikiAPIMiscError(data1['error'])
         if 'warning' in data1:
-            raise MediaWikiAPIError(data1['warning'])
+            raise MediaWikiAPIMiscError(data1['warning'])
 
         if data1['login']['result'] == 'Success':
             return
 
         if data1['login']['result'] != 'NeedToken':
-            raise MediaWikiAPIError('Login result is {}'.format(
+            raise MediaWikiAPIMiscError('Login result is {}'.format(
                 data1['login']['result']
             ))
 
@@ -541,16 +552,16 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         r2 = self.session.post(self.api_url, data=params2)
         if r2.status_code != 200:
-            raise MediaWikiAPIError('Status code is {}'.format(r2.status_code))
+            raise MediaWikiAPIMiscError('Status code is {}'.format(r2.status_code))
 
         data2 = r2.json()
         if 'error' in data2:
-            raise MediaWikiAPIError(data2['error'])
+            raise MediaWikiAPIMiscError(data2['error'])
         if 'warning' in data2:
-            raise MediaWikiAPIError(data2['warning'])
+            raise MediaWikiAPIMiscError(data2['warning'])
 
         if data2['login']['result'] != 'Success':
-            raise MediaWikiAPIError('Login result is {}'.format(
+            raise MediaWikiAPIMiscError('Login result is {}'.format(
                 data2['login']['result']
             ))
 
@@ -906,7 +917,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
 
         data = r.json()
         if 'error' in data:
-            raise MediaWikiAPIError(data['error'])
+            raise MediaWikiAPIMiscError(data['error'])
 
     def get_token(self, token_type: str) -> str:
         """Return CSRF token for API."""
@@ -948,7 +959,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
             if 'error' in data:
                 if data['error']['code'] == 'protectedpage':
                     raise PageProtected(data['error'])
-                raise MediaWikiAPIError(data['error'])
+                raise MediaWikiAPIMiscError(data['error'])
             backlinks = data['query']['backlinks']
 
             for backlink in backlinks:
@@ -1003,6 +1014,6 @@ class MediaWikiAPI1_31(MediaWikiAPI):
                         continue
                 if data['error']['code'] == 'cantdelete':
                     raise CanNotDelete(data['error']['info'])
-                raise MediaWikiAPIError(data['error']['info'])
+                raise MediaWikiAPIMiscError(data['error']['info'])
 
             return data
