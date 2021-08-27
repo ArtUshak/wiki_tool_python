@@ -72,7 +72,7 @@ Parameter `API_URL` should be URL of MediaWiki API without `/api.php`, for examp
 
 List wikiproject images (titles and URLs).
 
-For each image three lines are printed:
+For each image four lines are printed:
 
 1.   Word `FILE2`.
 2.   Image name on wikiproject (including namespace, for example `File:Ogyglo.png`).
