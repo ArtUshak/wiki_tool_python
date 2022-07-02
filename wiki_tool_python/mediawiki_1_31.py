@@ -7,6 +7,7 @@ import requests_toolbelt
 
 from mediawiki import (CanNotDelete, MediaWikiAPI, MediaWikiAPIMiscError,
                        PageProtected, StatusCodeError)
+from requests_wrapper import ThrottledSession
 
 
 class MediaWikiAPI1_31(MediaWikiAPI):
@@ -17,11 +18,11 @@ class MediaWikiAPI1_31(MediaWikiAPI):
     session: requests.Session
     csrf_token: Optional[str]
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, request_interval: float):
         """Create MediaWiki API 1.31 class with given API URL."""
-        self.api_url = '{}/api.php'.format(url)
-        self.index_url = '{}/index.php'.format(url)
-        self.session = requests.Session()
+        self.api_url = f'{url}/api.php'
+        self.index_url = f'{url}/index.php'
+        self.session = ThrottledSession(request_interval)
         self.csrf_token = None
 
     def get_namespace_list(self) -> List[int]:
@@ -373,7 +374,7 @@ class MediaWikiAPI1_31(MediaWikiAPI):
 
         data = self.call_api(params)
 
-        return data['query']['tokens']['{}token'.format(token_type)]
+        return data['query']['tokens'][f'{token_type}token']
 
     def get_backlinks(
         self, title: str, namespace: Optional[int], limit: int

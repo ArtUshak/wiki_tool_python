@@ -6,6 +6,7 @@ import requests
 
 from mediawiki import (CanNotDelete, MediaWikiAPI, MediaWikiAPIMiscError,
                        PageProtected, StatusCodeError)
+from requests_wrapper import ThrottledSession
 
 
 class MediaWikiAPI1_19(MediaWikiAPI):
@@ -17,11 +18,11 @@ class MediaWikiAPI1_19(MediaWikiAPI):
     edit_tokens: Dict[str, str]
     delete_tokens: Dict[str, str]
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, request_interval: float):
         """Create MediaWiki API 1.19 class with given API URL."""
-        self.api_url = '{}/api.php'.format(url)
-        self.index_url = '{}/index.php'.format(url)
-        self.session = requests.Session()
+        self.api_url = f'{url}/api.php'
+        self.index_url = f'{url}/index.php'
+        self.session = ThrottledSession(request_interval)
         self.edit_tokens = {}
         self.delete_tokens = {}
 
@@ -285,9 +286,10 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         data = self.call_api(params)
 
         return dict(map(
-            lambda page_data: (
-                    page_data['title'], page_data['{}token'.format(token_type)]
-                    ),
+            lambda page_data:
+                (
+                    page_data['title'], page_data['f{token_type}token']
+                ),
             data['query']['pages'].values()
         ))
 
@@ -370,7 +372,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             r = self.session.get(self.api_url, params=params)
 
         if r.status_code != 200:
-            raise StatusCodeError('Status code is {}'.format(r.status_code))
+            raise StatusCodeError(f'Status code is {r.status_code}')
 
         data = r.json()
         if 'error' in data:
