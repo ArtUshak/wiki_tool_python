@@ -1103,6 +1103,10 @@ def upload_page_from_directory(
     help='Use dictionary file of pathes and titles instead of file list'
 )
 @click.option(
+    '--extended-dictionary/--no-extended-dictionary', default=False,
+    help='Read dictionary values as dictionaries with "title" and "path" keys'
+)
+@click.option(
     '--prefix', default='',
     type=click.STRING,
     help='Prefix for page titles'
@@ -1130,7 +1134,8 @@ def upload_page_from_directory(
 )
 def upload_pages(
     ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
-    dictionary: bool, prefix: str, summary: str, mode: str,
+    dictionary: bool, extended_dictionary: str,
+    prefix: str, summary: str, mode: str,
     first_page: Optional[int], show_count: bool
 ):
     """Create pages from txt files in input directory."""
@@ -1142,10 +1147,16 @@ def upload_pages(
         file_data = json.load(list_file)
         if not isinstance(file_data, dict):
             raise ValueError()
-        page_file_list = list(map(
-            lambda data: (data[1], pathlib.Path(data[0])),
-            file_data.items()
-        ))
+        if extended_dictionary:
+            page_file_list = list(map(
+                lambda data: (data['title'], pathlib.Path(data['path'])),
+                file_data.values()
+            ))
+        else:
+            page_file_list = list(map(
+                lambda data: (data[1], pathlib.Path(data[0])),
+                file_data.items()
+            ))
     else:
         file_data = json.load(list_file)
         if not isinstance(file_data, list):
@@ -1177,7 +1188,7 @@ def upload_pages(
                 summary, append, page_title
             )
             uploaded_pages_count += 1
-            click.echo(f'Uploaded {uploaded_pages_count} pages')
+    click.echo(f'Uploaded {uploaded_pages_count} pages')
 
 
 cli.add_command(list_images)

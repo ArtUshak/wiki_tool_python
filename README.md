@@ -657,6 +657,8 @@ The following pages will be created:
 
 `--dictionary / --no-dictionary` Use dictionary file of pathes and titles instead of file list.
 
+`--extended-dictionary / --no-extended-dictionary` Read dictionary values as dictionaries with `title` and `path` keys.
+
 `--prefix TEXT` Prefix for page titles.
 
 `--summary TEXT` Edit summary.
