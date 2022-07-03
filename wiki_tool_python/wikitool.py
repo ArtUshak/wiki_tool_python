@@ -17,9 +17,9 @@ from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
 
 import click
 import requests
-from mediawiki_1_19 import MediaWikiAPI1_19
 
 import mediawiki
+from mediawiki_1_19 import MediaWikiAPI1_19
 from mediawiki_1_31 import MediaWikiAPI1_31
 
 
@@ -60,10 +60,14 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
     '--mediawiki-version', default='1.31', type=click.STRING,
     help='MediaWiki version, default is 1.31'
 )
+@click.option(
+    '--requests-interval', type=click.FloatRange(min=0.0),
+    help='Delay between requests'
+)
 @click.pass_context
 def cli(
     ctx: click.Context, credentials: Optional[str], login: bool,
-    mediawiki_version: Optional[str]
+    mediawiki_version: Optional[str], requests_interval: Optional[float]
 ):
     """Run MediaWiki script for exporting data and downloading images."""
     ctx.ensure_object(dict)
@@ -83,10 +87,11 @@ def cli(
 
     ctx.obj['MEDIAWIKI_VERSION'] = mediawiki_version
     ctx.obj['MEDIAWIKI_SHOULD_LOGIN'] = login
+    ctx.obj['REQUESTS_INTERVAL'] = requests_interval or 0.0
 
 
 def get_mediawiki_api_wihtout_login(
-    mediawiki_version: str, api_url: str
+    mediawiki_version: str, api_url: str, request_interval: float
 ) -> mediawiki.MediaWikiAPI:
     """
     Return MediaWiki API object for given version and API URL.
@@ -94,9 +99,9 @@ def get_mediawiki_api_wihtout_login(
     Raise exception if version is not implemented.
     """
     if mediawiki_version == '1.31':
-        return MediaWikiAPI1_31(api_url)
+        return MediaWikiAPI1_31(api_url, request_interval)
     if mediawiki_version == '1.19':
-        return MediaWikiAPI1_19(api_url)
+        return MediaWikiAPI1_19(api_url, request_interval)
     raise click.ClickException(
         'MediaWiki API version {} is not yet implemented'.format(
             mediawiki_version
@@ -105,7 +110,7 @@ def get_mediawiki_api_wihtout_login(
 
 
 def get_mediawiki_api(
-    ctx: click.Context, api_url: str
+    ctx: click.Context, api_url: str, request_interval: float
 ) -> mediawiki.MediaWikiAPI:
     """
     Return MediaWiki API object for given version and API URL.
@@ -114,7 +119,7 @@ def get_mediawiki_api(
     Log in if required by user.
     """
     api = get_mediawiki_api_wihtout_login(
-        ctx.obj['MEDIAWIKI_VERSION'], api_url
+        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL']
     )
 
     if ctx.obj['MEDIAWIKI_SHOULD_LOGIN']:
@@ -139,7 +144,7 @@ def get_mediawiki_api_with_auth(
     user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
 
     api = get_mediawiki_api_wihtout_login(
-        ctx.obj['MEDIAWIKI_VERSION'], api_url
+        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL']
     )
     api.api_login(user_credentials[0], user_credentials[1])
     return api
@@ -168,7 +173,7 @@ def list_images(
     confine_encoding: Optional[str]
 ):
     """List images from wikiproject (titles and URLs)."""
-    api = get_mediawiki_api(ctx, api_url)
+    api = get_mediawiki_api(ctx, api_url, ctx.obj['REQUESTS_INTERVAL'])
     i: int = 0
     for image in api.get_image_list(api_limit):
         title_regex = re.match(r'.+?\:(.*)', image['title'])
@@ -215,7 +220,7 @@ def list_category_images(
     api_limit: int, api_image_ids_limit: int, confine_encoding: Optional[str]
 ):
     """List images from category (titles and URLs)."""
-    api = get_mediawiki_api(ctx, api_url)
+    api = get_mediawiki_api(ctx, api_url, ctx.obj['REQUESTS_INTERVAL'])
     page_ids: List[int] = list(map(
         lambda page_data: page_data['pageid'],
         api.get_category_members(
@@ -259,13 +264,13 @@ def list_pages(
     ctx: click.Context, api_url: str, output_file: TextIO, api_limit: int
 ):
     """List page names from wikiproject."""
-    api = get_mediawiki_api(ctx, api_url)
+    api = get_mediawiki_api(ctx, api_url, ctx.obj['REQUESTS_INTERVAL'])
     for namespace in api.get_namespace_list():
         for page_name in api.get_page_list(
             namespace, api_limit
         ):
             click.echo(
-                '{}'.format(page_name),
+                page_name,
                 file=output_file
             )
 
@@ -287,12 +292,12 @@ def list_namespace_pages(
     api_limit: int
 ):
     """List page names from wikiproject."""
-    api = get_mediawiki_api(ctx, api_url)
+    api = get_mediawiki_api(ctx, api_url, ctx.obj['REQUESTS_INTERVAL'])
     for page_name in api.get_page_list(
         namespace, api_limit
     ):
         click.echo(
-            '{}'.format(page_name),
+            page_name,
             file=output_file
         )
 
@@ -429,15 +434,15 @@ def delete_pages(
                     continue
             try:
                 api.delete_page(page_name, reason)
-                click.echo('Deleted {}'.format(page_name))
+                click.echo(f'Deleted {page_name}')
                 deleted_num += 1
             except mediawiki.CanNotDelete:
-                click.echo('Can not delete {}'.format(page_name))
+                click.echo(f'Can not delete {page_name}')
                 failed_num += 1
 
-    click.echo('{} pages deleted.'.format(deleted_num))
+    click.echo(f'{deleted_num} pages deleted')
     if failed_num > 0:
-        click.echo('{} pages not deleted.'.format(deleted_num))
+        click.echo(f'{deleted_num} pages not deleted')
 
 
 @click.command()
@@ -505,10 +510,10 @@ def edit_pages(
                 if exclude_filter_expression.match(page_name):
                     continue
             api.edit_page(page_name, new_text, reason)
-            click.echo('Edited {}'.format(page_name))
+            click.echo(f'Edited {page_name}')
             edited_num += 1
 
-    click.echo('{} pages edited.'.format(edited_num))
+    click.echo(f'{edited_num} pages edited')
 
 
 @click.command()
@@ -557,10 +562,10 @@ def edit_pages_clone_interwikis(
                 continue
             new_text = expr_old.sub(r'\1\n[[{}:\2]]'.format(new), text)
             api.edit_page(page_name, new_text, reason)
-            click.echo('Edited {}'.format(page_name))
+            click.echo(f'Edited {page_name}')
             edited_num += 1
 
-    click.echo('{} pages edited.'.format(edited_num))
+    click.echo(f'{edited_num} pages edited')
 
 
 @click.command()
@@ -777,7 +782,7 @@ def votecount(
     output_format: str, api_limit: int, redirect_regex_text: str,
 ):
     """Get edit counts for users from input file, and calculate vote power."""
-    api = get_mediawiki_api(ctx, api_url)
+    api = get_mediawiki_api(ctx, api_url, ctx.obj['REQUESTS_INTERVAL'])
 
     regex_redirect = re.compile(redirect_regex_text)
 
@@ -831,7 +836,7 @@ def votecount(
 
     if output_format == 'txt':
         for user in users_data:
-            click.echo('User {}'.format(user))
+            click.echo(f'User {user}')
             for key in user_data:
                 click.echo('{}: {}'.format(key, user_data[key]))
             click.echo('')
@@ -841,13 +846,13 @@ def votecount(
         click.echo('{| class="wikitable"')
         click.echo(' ! Участник')
         for namespace in namespaces_edit_weights:
-            click.echo(' ! N{}'.format(namespace))
+            click.echo(f' ! N{namespace}')
         click.echo(' ! A')
         click.echo(' ! Сила голоса (автоматическая)')
         click.echo(' ! Сила голоса (итоговая)')
         for user in users_data:
             click.echo(' |-')
-            click.echo(' | {{{{ U|{} }}}}'.format(user))
+            click.echo(f' | {{{{ U|{user} }}}}')
             for key in namespaces_edit_weights:
                 click.echo(' | style="text-align: right;" | {}'.format(
                     users_data[user][key]))
@@ -1098,6 +1103,10 @@ def upload_page_from_directory(
     help='Use dictionary file of pathes and titles instead of file list'
 )
 @click.option(
+    '--extended-dictionary/--no-extended-dictionary', default=False,
+    help='Read dictionary values as dictionaries with "title" and "path" keys'
+)
+@click.option(
     '--prefix', default='',
     type=click.STRING,
     help='Prefix for page titles'
@@ -1125,7 +1134,8 @@ def upload_page_from_directory(
 )
 def upload_pages(
     ctx: click.Context, api_url: str, input_directory: str, list_file: TextIO,
-    dictionary: bool, prefix: str, summary: str, mode: str,
+    dictionary: bool, extended_dictionary: str,
+    prefix: str, summary: str, mode: str,
     first_page: Optional[int], show_count: bool
 ):
     """Create pages from txt files in input directory."""
@@ -1137,10 +1147,16 @@ def upload_pages(
         file_data = json.load(list_file)
         if not isinstance(file_data, dict):
             raise ValueError()
-        page_file_list = list(map(
-            lambda data: (data[1], pathlib.Path(data[0])),
-            file_data.items()
-        ))
+        if extended_dictionary:
+            page_file_list = list(map(
+                lambda data: (data['title'], pathlib.Path(data['path'])),
+                file_data.values()
+            ))
+        else:
+            page_file_list = list(map(
+                lambda data: (data[1], pathlib.Path(data[0])),
+                file_data.items()
+            ))
     else:
         file_data = json.load(list_file)
         if not isinstance(file_data, list):
@@ -1172,7 +1188,7 @@ def upload_pages(
                 summary, append, page_title
             )
             uploaded_pages_count += 1
-            click.echo(f'Uploaded {uploaded_pages_count} pages')
+    click.echo(f'Uploaded {uploaded_pages_count} pages')
 
 
 cli.add_command(list_images)
