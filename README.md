@@ -54,6 +54,10 @@ To run script to get page list, run batch file `list_pages.bat` and input URL, o
 
 Some commands require authentication. To tell login and password, use option `--credentials LOGIN:PASSWORD` or set environment variable `MEDIAWIKI_CREDENTIALS` to `LOGIN:PASSWORD`.
 
+## Throttling requests
+
+To set interval between requests in seconds, use environment variable `REQUESTS_INTERVAL`.
+
 ### Selecting MediaWiki version
 
 To select MediaWiki version, use option `--mediawiki-version VERSION`. Versions `1.31` and `1.19` are allowed, but `1.19` is not fully supported. Version `1.31` is default.
