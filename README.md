@@ -56,7 +56,7 @@ Some commands require authentication. To tell login and password, use option `--
 
 ## Throttling requests
 
-To set interval between requests in seconds, use environment variable `REQUESTS_INTERVAL`.
+To set interval between requests in seconds, use option `--requests-interval SECONDS`.
 
 ### Selecting MediaWiki version
 
