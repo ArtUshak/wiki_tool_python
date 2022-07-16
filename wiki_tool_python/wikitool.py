@@ -72,7 +72,7 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
 def cli(
     ctx: click.Context, credentials: Optional[str], login: bool,
     mediawiki_version: Optional[str], requests_interval: Optional[float],
-    user_agent: Optional[str]
+    user_agent: str
 ):
     """Run MediaWiki script for exporting data and downloading images."""
     ctx.ensure_object(dict)
@@ -93,6 +93,7 @@ def cli(
     ctx.obj['MEDIAWIKI_VERSION'] = mediawiki_version
     ctx.obj['MEDIAWIKI_SHOULD_LOGIN'] = login
     ctx.obj['REQUESTS_INTERVAL'] = requests_interval or 0.0
+    ctx.obj['USER_AGENT'] = user_agent
 
 
 def get_mediawiki_api_without_login(
