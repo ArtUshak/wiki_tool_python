@@ -1,6 +1,6 @@
 """MediaWiki API 1.31."""
 import datetime
-from typing import Any, BinaryIO, Dict, Iterator, List, Optional
+from typing import BinaryIO, Dict, Iterator, List, Optional
 
 import requests
 
@@ -18,17 +18,20 @@ class MediaWikiAPI1_19(MediaWikiAPI):
     edit_tokens: Dict[str, str]
     delete_tokens: Dict[str, str]
 
-    def __init__(self, url: str, request_interval: float):
+    def __init__(self, url: str, request_interval: float, user_agent: str):
         """Create MediaWiki API 1.19 class with given API URL."""
         self.api_url = f'{url}/api.php'
         self.index_url = f'{url}/index.php'
         self.session = ThrottledSession(request_interval)
+        self.session.headers.update({
+            'user-agent': user_agent
+        })
         self.edit_tokens = {}
         self.delete_tokens = {}
 
     def get_namespace_list(self) -> List[int]:
         """Iterate over namespaces in wiki."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'meta': 'siteinfo',
             'siprop': 'namespaces',
@@ -52,14 +55,14 @@ class MediaWikiAPI1_19(MediaWikiAPI):
     def get_user_contributions_list(
         self, namespace: int, limit: int, user: str,
         start_date: datetime.datetime, end_date: datetime.datetime,
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """
         Iterate over user edits.
 
         Iterate over all edits made by `user in `namespace` since `start_date`
         until `end_date`.
         """
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'list': 'usercontribs',
             'uclimit': limit,
@@ -72,7 +75,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             params['ucstart'] = int(start_date.timestamp())
         if end_date is not None:
             params['ucend'] = int(end_date.timestamp())
-        last_continue: Dict[str, Any] = {}
+        last_continue: Dict[str, object] = {}
 
         r = self.session.get(self.api_url, params=params)
         if r.status_code != 200:
@@ -100,7 +103,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
     def get_category_members(
         self, category_name: str, limit: int,
         namespace: Optional[int] = None, member_type: Optional[str] = None
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Iterate over pages in category `category_name`."""
         raise NotImplementedError()
 
@@ -110,14 +113,14 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
         Each image data is dictionary with two fields: `title` and `url`.
         """
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'list': 'allimages',
             'aidir': 'ascending',
             'ailimit': limit,
             'format': 'json',
         }
-        last_continue: Dict[str, Any] = {}
+        last_continue: Dict[str, object] = {}
 
         while True:
             current_params = params.copy()
@@ -148,7 +151,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         redirect_filter_mode: str = 'all'
     ) -> Iterator[str]:
         """Iterate over all page names in wiki in `namespace`."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'list': 'allpages',
             'apnamespace': namespace,
@@ -159,7 +162,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         }
         if first_page is not None:
             params['apfrom'] = first_page
-        last_continue: Dict[str, Any] = {}
+        last_continue: Dict[str, object] = {}
 
         while True:
             current_params = params.copy()
@@ -180,7 +183,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         self, title: str,
     ) -> str:
         """Get text of page with `title`."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'raw',
             'title': title,
         }
@@ -199,9 +202,9 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
     def get_deletedrevs_list(
         self, namespace: int, limit: int
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Iterate over deleted revisions in wiki in `namespace`."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'list': 'deletedrevs',
             'drnamespace': namespace,
@@ -210,7 +213,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             'drprop': 'revid|user|comment|content',
             'format': 'json',
         }
-        last_continue: Dict[str, Any] = {}
+        last_continue: Dict[str, object] = {}
 
         while True:
             current_params = params.copy()
@@ -235,7 +238,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             self, page_name: str, reason: Optional[str] = None
     ) -> None:
         """Delete page."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'delete',
             'title': page_name,
             'format': 'json',
@@ -252,7 +255,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             self, page_name: str, text: str, summary: Optional[str] = None
     ) -> None:
         """Delete page."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'edit',
             'title': page_name,
             'text': text,
@@ -275,7 +278,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
     def get_tokens(self, token_type: str, titles: str) -> Dict[str, str]:
         """Return page tokens for API."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'prop': 'info',
             'titles': titles,
@@ -295,9 +298,9 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
     def get_backlinks(
         self, title: str, namespace: Optional[int], limit: int
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Get list of pages which has links to given page."""
-        params: Dict[str, Any] = {
+        params: Dict[str, object] = {
             'action': 'query',
             'list': 'backlinks',
             'bltitle': title,
@@ -307,7 +310,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
         if namespace is not None:
             params['blnamespace'] = namespace
 
-        last_continue: Dict[str, Any] = {}
+        last_continue: Dict[str, object] = {}
 
         while True:
             current_params = params.copy()
@@ -326,7 +329,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
 
     def api_login(self, username: str, password: str) -> None:
         """Log in to MediaWiki API."""
-        params1: Dict[str, Any] = {
+        params1: Dict[str, object] = {
             'action': 'login',
             'format': 'json',
             'lgname': username,
@@ -343,7 +346,7 @@ class MediaWikiAPI1_19(MediaWikiAPI):
                 data1['login']['result']
             ))
 
-        params2: Dict[str, Any] = {
+        params2: Dict[str, object] = {
             'action': 'login',
             'format': 'json',
             'lgname': username,
@@ -359,8 +362,8 @@ class MediaWikiAPI1_19(MediaWikiAPI):
             ))
 
     def call_api(
-        self, params: Dict[str, Any], is_post: bool = False
-    ) -> Dict[str, Any]:
+        self, params: Dict[str, object], is_post: bool = False
+    ) -> Dict[str, object]:
         """
         Perform request to MediaWiki API.
 
