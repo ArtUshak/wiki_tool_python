@@ -62,6 +62,10 @@ To set interval between requests in seconds, use option `--requests-interval SEC
 
 To select MediaWiki version, use option `--mediawiki-version VERSION`. Versions `1.31` and `1.19` are allowed, but `1.19` is not fully supported. Version `1.31` is default.
 
+## Overwriting User-Agent
+
+To set `User-Agent` header, use option `--user-agent STRING`. User-agent is set to `WikiToolPython` by default.
+
 ### Force login
 
 To log in if it is not mandatory for API method, use option `--login`.

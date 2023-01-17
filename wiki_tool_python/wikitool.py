@@ -12,8 +12,8 @@ import re
 import shlex
 import shutil
 import unicodedata
-from typing import (Any, BinaryIO, ContextManager, Dict, Iterable, Iterator,
-                    List, Optional, TextIO, Tuple)
+from typing import (BinaryIO, ContextManager, Dict, Iterable, Iterator, List,
+                    Optional, TextIO, Tuple)
 
 import click
 import requests
@@ -64,10 +64,15 @@ def read_image_list(image_list_file: TextIO) -> Iterator[Dict[str, str]]:
     '--requests-interval', type=click.FloatRange(min=0.0),
     help='Delay between requests'
 )
+@click.option(
+    '--user-agent', type=click.STRING, default='WikiToolPython',
+    help='User-Agent value'
+)
 @click.pass_context
 def cli(
     ctx: click.Context, credentials: Optional[str], login: bool,
-    mediawiki_version: Optional[str], requests_interval: Optional[float]
+    mediawiki_version: Optional[str], requests_interval: Optional[float],
+    user_agent: str
 ):
     """Run MediaWiki script for exporting data and downloading images."""
     ctx.ensure_object(dict)
@@ -88,10 +93,12 @@ def cli(
     ctx.obj['MEDIAWIKI_VERSION'] = mediawiki_version
     ctx.obj['MEDIAWIKI_SHOULD_LOGIN'] = login
     ctx.obj['REQUESTS_INTERVAL'] = requests_interval or 0.0
+    ctx.obj['USER_AGENT'] = user_agent
 
 
-def get_mediawiki_api_wihtout_login(
-    mediawiki_version: str, api_url: str, request_interval: float
+def get_mediawiki_api_without_login(
+    mediawiki_version: str, api_url: str, request_interval: float,
+    user_agent: str
 ) -> mediawiki.MediaWikiAPI:
     """
     Return MediaWiki API object for given version and API URL.
@@ -99,9 +106,9 @@ def get_mediawiki_api_wihtout_login(
     Raise exception if version is not implemented.
     """
     if mediawiki_version == '1.31':
-        return MediaWikiAPI1_31(api_url, request_interval)
+        return MediaWikiAPI1_31(api_url, request_interval, user_agent)
     if mediawiki_version == '1.19':
-        return MediaWikiAPI1_19(api_url, request_interval)
+        return MediaWikiAPI1_19(api_url, request_interval, user_agent)
     raise click.ClickException(
         'MediaWiki API version {} is not yet implemented'.format(
             mediawiki_version
@@ -118,8 +125,9 @@ def get_mediawiki_api(
     Raise exception if version is not implemented.
     Log in if required by user.
     """
-    api = get_mediawiki_api_wihtout_login(
-        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL']
+    api = get_mediawiki_api_without_login(
+        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL'],
+        ctx.obj['USER_AGENT']
     )
 
     if ctx.obj['MEDIAWIKI_SHOULD_LOGIN']:
@@ -143,8 +151,9 @@ def get_mediawiki_api_with_auth(
         raise click.ClickException('User credentials not given')
     user_credentials: Tuple[str, str] = ctx.obj['MEDIAWIKI_CREDENTIALS']
 
-    api = get_mediawiki_api_wihtout_login(
-        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL']
+    api = get_mediawiki_api_without_login(
+        ctx.obj['MEDIAWIKI_VERSION'], api_url, ctx.obj['REQUESTS_INTERVAL'],
+        ctx.obj['USER_AGENT']
     )
     api.api_login(user_credentials[0], user_credentials[1])
     return api
@@ -336,7 +345,7 @@ def list_deletedrevs(
         namespaces = api.get_namespace_list()
 
     for namespace in namespaces:
-        chunk: List[Dict[str, Any]] = []
+        chunk: List[Dict[str, object]] = []
         for revision in api.get_deletedrevs_list(
                 namespace, api_limit
         ):
@@ -761,10 +770,10 @@ def read_user_data(input_file: TextIO) -> List[str]:
               type=click.File('rt'),
               help='JSON file to read namespaces data from')
 @click.option('--start',
-              type=click.DateTime(),  # type: ignore
+              type=click.DateTime(),
               help='Start date for counting edits')
 @click.option('--end',
-              type=click.DateTime(),  # type: ignore
+              type=click.DateTime(),
               help='End date for counting edits')
 @click.option('--output-format', default='mediawiki',
               type=click.Choice(['txt', 'mediawiki', 'json']),
@@ -800,12 +809,12 @@ def votecount(
         map(lambda key: (int(key), namespaces_page_weights[key]),
             namespaces_page_weights))
 
-    users_data: Dict[str, Dict[str, Any]] = {}
+    users_data: Dict[str, Dict[str, object]] = {}
     for user in users:
         click.echo('Processing user {}...'.format(user))
         user_vote_power: float = 0.0
         user_new_pages: int = 0
-        user_data: Dict[str, Any] = {}
+        user_data: Dict[str, object] = {}
 
         for namespace in namespaces_edit_weights:
             pages_count = 0
@@ -1033,7 +1042,7 @@ def generate_import_script(
                 str(input_directory_path.joinpath(page_file_path))
             ]
             output_script_file.write(
-                shlex.join(line_argv)  # type: ignore
+                shlex.join(line_argv)
                 + ' >> ' + shlex.quote(log_file) + ' 2>&1 \n'
             )
             if show_progress_bar:
@@ -1045,7 +1054,7 @@ def generate_import_script(
                     'echo', '-ne', progress_bar_text + '\\r'
                 ]
                 output_script_file.write(
-                    shlex.join(progress_line_argv) + '\n'  # type: ignore
+                    shlex.join(progress_line_argv) + '\n'
                 )
             current_file_count += 1
 

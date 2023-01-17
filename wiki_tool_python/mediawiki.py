@@ -1,7 +1,7 @@
 """MediaWiki API interaction functions."""
 import datetime
 from abc import ABC, abstractmethod
-from typing import Any, BinaryIO, Dict, Iterable, Iterator, List, Optional
+from typing import BinaryIO, Dict, Iterable, Iterator, List, Optional
 
 import click
 
@@ -34,9 +34,9 @@ class PageProtected(MediaWikiAPIError):
 class MediaWikiAPIMiscError(MediaWikiAPIError):
     """MediaWiki API error."""
 
-    data: Any
+    data: object
 
-    def __init__(self, data: Any):
+    def __init__(self, data: object):
         """Initialize."""
         self.data = data
         super().__init__(str(data))
@@ -54,7 +54,7 @@ class MediaWikiAPI(ABC):
     def get_user_contributions_list(
         self, namespace: int, limit: int, user: str,
         start_date: datetime.datetime, end_date: datetime.datetime,
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """
         Iterate over user edits.
 
@@ -82,7 +82,7 @@ class MediaWikiAPI(ABC):
     def get_category_members(
         self, category_name: str, limit: int,
         namespace: Optional[int] = None, member_type: Optional[str] = None
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Iterate over pages in category `category_name`."""
         raise NotImplementedError()
 
@@ -111,7 +111,7 @@ class MediaWikiAPI(ABC):
     @abstractmethod
     def get_deletedrevs_list(
         self, namespace: int, limit: int
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Iterate over deleted revisions in wiki in `namespace`."""
         raise NotImplementedError()
 
@@ -140,7 +140,7 @@ class MediaWikiAPI(ABC):
     @abstractmethod
     def get_backlinks(
         self, title: str, namespace: Optional[int], limit: int
-    ) -> Iterator[Dict[str, Any]]:
+    ) -> Iterator[Dict[str, object]]:
         """Get list of pages which has links to given page."""
         raise NotImplementedError()
 
