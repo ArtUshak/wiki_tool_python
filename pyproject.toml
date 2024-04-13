@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wiki_tool_python"
-version = "0.2.1"
+version = "0.2.2"
 description = "Script to perform tasks with websites on MediaWiki engine using API"
 authors = ["Artiom Khandamirov <t9max@yandex.ru>"]
 license = "MIT"
