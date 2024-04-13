@@ -17,7 +17,6 @@ python = "^3.8.1"
 click = "^8.1.7"
 requests = "^2.31.0"
 requests-toolbelt = "^1.0.0"
-flake8-print = "^5.0.0"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
