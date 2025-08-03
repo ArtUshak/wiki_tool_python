@@ -4,7 +4,7 @@ Script to perform various tasks with websites (wikiprojects) on [MediaWiki](http
 
 ## Installation
 
-Install Python 3.8 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
+Install Python 3.11 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
 
 Then you can just run `poetry run COMMAND` to run specific commands under python virtual environment created by poetry.
 
@@ -12,7 +12,7 @@ Or you can enter poetry shell (by running `poetry shell`) and then type script c
 
 ### Installation example
 
-Assuming Python 3.8 or higher and poetry are installed.
+Assuming Python 3.11 or higher and poetry are installed.
 
 Initialize and update virtual environment (assuming you are in the folder with this README file):
 
@@ -28,7 +28,7 @@ poetry run python wiki_tool_python/wikitool.py --help
 
 ### Windows installation example
 
-Assuming Python 3.8 or higher is installed.
+Assuming Python 3.11 or higher is installed.
 
 Install poetry (in Windows PowerShell):
 
@@ -268,7 +268,7 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 **Note**: this command deletes pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.8/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.11/library/re.html) for details.
 
 #### Command `delete-pages`: options
 
@@ -294,7 +294,7 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 
 **Note**: this command edits pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.8/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.11/library/re.html) for details.
 
 #### Command `edit-pages`: options
 
@@ -759,5 +759,5 @@ poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/i
 *   [Click](https://click.palletsprojects.com) developers.
 *   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
 *   [Wikireality](http://wikireality.ru) users, especially members of Dimetr's Telegram chat.
-*   Other folks from Absurdopedia, russian version of Uncyclopedia ([absurdopedia.wiki](https://absurdopedia.wiki/) and [absurdopedia.net](https://absurdopedia.net/))
+*   Other folks from Absurdopedia, Russian version of Uncyclopedia ([absurdopedia.wiki](https://absurdopedia.wiki/) and [absurdopedia.net](https://absurdopedia.net/))
 *   Other cool folks.

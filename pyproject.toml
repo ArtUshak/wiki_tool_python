@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wiki_tool_python"
-version = "0.2.1"
+version = "0.2.7"
 description = "Script to perform tasks with websites on MediaWiki engine using API"
 authors = ["Artiom Khandamirov <t9max@yandex.ru>"]
 license = "MIT"
@@ -13,7 +13,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8.1"
+python = "^3.11"
 click = "^8.1.7"
 requests = "^2.31.0"
 requests-toolbelt = "^1.0.0"
