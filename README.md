@@ -1,7 +1,5 @@
 # `wiki_tool_python`
 
-**TODO**: refactor, rewrite README.
-
 Script to perform various tasks with websites (wikiprojects) on [MediaWiki](https://www.mediawiki.org/) engine using MediaWiki API.
 
 ## Installation
