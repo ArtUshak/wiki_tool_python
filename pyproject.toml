@@ -1,6 +1,6 @@
 [project]
 name = "wiki_tool_python"
-version = "0.2.7"
+version = "0.3.0"
 description = "Script to perform tasks with websites on MediaWiki engine using API"
 authors = [{ name = "Artiom Khandamirov", email = "t9max@yandex.ru" }]
 requires-python = ">=3.12,<4"
