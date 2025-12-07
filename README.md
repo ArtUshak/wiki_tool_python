@@ -1,48 +1,30 @@
-# wiki_tool_python
+# `wiki_tool_python`
+
+**TODO**: refactor, rewrite README.
 
 Script to perform various tasks with websites (wikiprojects) on [MediaWiki](https://www.mediawiki.org/) engine using MediaWiki API.
 
 ## Installation
 
-Install Python 3.11 or higher, install [poetry](https://python-poetry.org/docs/), run `poetry install --no-dev`.
+Install Python 3.12 or higher, install [uv](https://docs.astral.sh/uv/), run `uv sync --no-dev`.
 
-Then you can just run `poetry run COMMAND` to run specific commands under python virtual environment created by poetry.
-
-Or you can enter poetry shell (by running `poetry shell`) and then type script commands.
+Then you can just run `uv run COMMAND` to run specific commands under python virtual environment created by uv.
 
 ### Installation example
 
-Assuming Python 3.11 or higher and poetry are installed.
+Assuming Python 3.12 or higher and uv are installed.
 
 Initialize and update virtual environment (assuming you are in the folder with this README file):
 
 ```sh
-poetry install --no-dev
+uv sync --no-dev
 ```
 
 Run script:
 
 ```sh
-poetry run python wiki_tool_python/wikitool.py --help
+uv run python -m wiki_tool_python.wikitool --help
 ```
-
-### Windows installation example
-
-Assuming Python 3.11 or higher is installed.
-
-Install poetry (in Windows PowerShell):
-
-```ps1
-(Invoke-WebRequest -Uri https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py -UseBasicParsing).Content | python
-```
-
-To install or update libraries, run batch file `update.bat`.
-
-To run script to download images, run batch file `download_images.bat` and input URL, or run batch file with URL as first param, for example: `download_images.bat https://absurdopedia.wiki/w`.
-
-To run script to upload images, run batch file `upload_images.bat` and input your username, password and URL, or run batch file with URL as first param and type your username and password, for example: `upload_images.bat https://absurdopedia.wiki/w` and type username and password.
-
-To run script to get page list, run batch file `list_pages.bat` and input URL, or run batch file with URL as first param, for example: `list_pages.bat https://absurdopedia.wiki/w`.
 
 ## Usage
 
@@ -76,7 +58,7 @@ Parameter `API_URL` should be URL of MediaWiki API without `/api.php`, for examp
 
 ### Command `list-images`
 
-`python wiki_tool_python/wikitool.py list-images [OPTIONS] API_URL`
+`python -m wiki_tool_python.wikitool list-images [OPTIONS] API_URL`
 
 List wikiproject images (titles and URLs).
 
@@ -104,7 +86,7 @@ The same format is used by `download-images` command.
 #### Command `list-images`: example
 
 ```sh
-python wiki_tool_python/wikitool.py list-images https://wow.gamepedia.com
+python -m wiki_tool_python.wikitool list-images https://wow.gamepedia.com
 ```
 
 Output:
@@ -122,7 +104,7 @@ https://gamepedia.cursecdn.com/wowpedia/d/d6/Achievement_guild_forgreatjusticera
 
 ### Command `list-category-images`
 
-`python wiki_tool_python/wikitool.py list-category-images [OPTIONS] API_URL CATEGORY`
+`python -m wiki_tool_python.wikitool list-category-images [OPTIONS] API_URL CATEGORY`
 
 List wikiproject images (titles and URLs) from specific category in the same format as `list-images`.
 
@@ -139,7 +121,7 @@ List wikiproject images (titles and URLs) from specific category in the same for
 #### Command `list-category-images`: example
 
 ```sh
-python wiki_tool_python/wikitool.py list-category-images https://wow.gamepedia.com "Category:Images with watermarks"
+python -m wiki_tool_python.wikitool list-category-images https://wow.gamepedia.com "Category:Images with watermarks"
 ```
 
 Output:
@@ -157,7 +139,7 @@ https://gamepedia.cursecdn.com/wowpedia/2/2a/Quartermaster_Alcorn_-_Beta.jpg
 
 ### Command `list-pages`
 
-`python wiki_tool_python/wikitool.py list-pages [OPTIONS] API_URL`
+`python -m wiki_tool_python.wikitool list-pages [OPTIONS] API_URL`
 
 List wikiproject page names of all wikiproject namespaces.
 
@@ -174,7 +156,7 @@ Each page name is written on separate line.
 #### Command `list-pages`: example
 
 ```sh
-python wiki_tool_python/wikitool.py list-pages https://wow.gamepedia.com
+python -m wiki_tool_python.wikitool list-pages https://wow.gamepedia.com
 ```
 
 Output:
@@ -198,7 +180,7 @@ Talk:Alchemy trainers)
 
 ### Command `list-namespace-pages`
 
-`python wiki_tool_python/wikitool.py list-namespace-pages [OPTIONS] API_URL NAMESPACE`
+`python -m wiki_tool_python.wikitool list-namespace-pages [OPTIONS] API_URL NAMESPACE`
 
 List wikiproject page names of namespace (`NAMESPACE` should be integer ID of namespace).
 
@@ -215,7 +197,7 @@ Each page name is written on separate line.
 #### Command `list-namespace-pages`: example
 
 ```sh
-python wiki_tool_python/wikitool.py list-namespace-pages https://wow.gamepedia.com 1
+python -m wiki_tool_python.wikitool list-namespace-pages https://wow.gamepedia.com 1
 ```
 
 Output:
@@ -242,7 +224,7 @@ Talk:1st Legion
 
 ### Command `list-deletedrevs`
 
-`python wiki_tool_python/wikitool.py list-deletedrevs [OPTIONS] OUTPUT_DIRECTORY API_URL`
+`python -m wiki_tool_python.wikitool list-deletedrevs [OPTIONS] OUTPUT_DIRECTORY API_URL`
 
 List deleted revisions from wikiproject in JSON format, output may be splitted to many JSON files, files are saved to `OUTPUT_DIRECTORY`.
 
@@ -260,7 +242,7 @@ List deleted revisions from wikiproject in JSON format, output may be splitted t
 
 ### Command `delete-pages`
 
-`python wiki_tool_python/wikitool.py delete-pages [OPTIONS] FILTER_EXPRESSION API_URL`
+`python -m wiki_tool_python.wikitool delete-pages [OPTIONS] FILTER_EXPRESSION API_URL`
 
 Delete pages matching regular expression `FILTER_EXPRESSION`.
 
@@ -268,7 +250,7 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 **Note**: this command deletes pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.11/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.12/library/re.html) for details.
 
 #### Command `delete-pages`: options
 
@@ -286,7 +268,7 @@ Delete pages matching regular expression `FILTER_EXPRESSION`.
 
 ### Command `edit-pages`
 
-`python wiki_tool_python/wikitool.py edit-pages [OPTIONS] FILTER_EXPRESSION NEW_TEXT API_URL`
+`python -m wiki_tool_python.wikitool edit-pages [OPTIONS] FILTER_EXPRESSION NEW_TEXT API_URL`
 
 Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their content with new text `NEW_TEXT`.
 
@@ -294,7 +276,7 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 
 **Note**: this command edits pages, use it with caution!
 
-**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.11/library/re.html) for details.
+**Note**: regular expressions are parsed with module `re` of python standard library. See [re documentation](https://docs.python.org/3.12/library/re.html) for details.
 
 #### Command `edit-pages`: options
 
@@ -312,7 +294,7 @@ Edit pages matching regular expression `FILTER_EXPRESSION`, replacing their cont
 
 ### Command `edit-pages-clone-interwikis`
 
-`python wiki_tool_python/wikitool.py edit-pages-clone-interwikis [OPTIONS] API_URL OLD NEW`
+`python -m wiki_tool_python.wikitool edit-pages-clone-interwikis [OPTIONS] API_URL OLD NEW`
 
 Add interwiki `NEW` to pages that contain interwiki `OLD`, but do not contain interwiki `NEW` yet.
 
@@ -349,7 +331,7 @@ This command may be used, for example, if your wiki contains another language ve
 
 ### Command `replace-links`
 
-`python wiki_tool_python/wikitool.py replace-links [OPTIONS] API_URL OLD NEW`
+`python -m wiki_tool_python.wikitool replace-links [OPTIONS] API_URL OLD NEW`
 
 Replace links to page `OLD` by links to page `NEW`.
 
@@ -378,12 +360,12 @@ Arthur Brahmaguptov was [[Wikiproject administrator|administrator]] of [[Encyclo
 #### Command: `replace-links`: example
 
 ```sh
-python ./wiki_tool_python/wikitool.py replace-links http://wikireality.ru/w Администратор "Администратор википроекта"
+python -m wiki_tool_python.wikitool replace-links http://wikireality.ru/w Администратор "Администратор википроекта"
 ```
 
 ### Command `download-images`
 
-`python wiki_tool_python/wikitool.py download-images [OPTIONS] LIST_FILE DOWNLOAD_DIR`
+`python -m wiki_tool_python.wikitool download-images [OPTIONS] LIST_FILE DOWNLOAD_DIR`
 
 Download images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) to directory `DOWNLOAD_DIR`.
 
@@ -400,7 +382,7 @@ No specific options.
 #### Command `download-images`: example
 
 ```sh
-python wiki_tool_python/wikitool.py download-images images.txt wiki_images
+python -m wiki_tool_python.wikitool download-images images.txt wiki_images
 ```
 
 Where `images.txt` is list of images.
@@ -413,7 +395,7 @@ Images are downloaded to directory `wiki_images`.
 
 ### Command `upload-image`
 
-`python wiki_tool_python/wikitool.py upload-image [OPTIONS] FILE_NAME FILE API_URL`
+`python -m wiki_tool_python.wikitool upload-image [OPTIONS] FILE_NAME FILE API_URL`
 
 Upload image `FILE` to wiki with new name `FILE_NAME`.
 
@@ -426,12 +408,12 @@ No specific options.
 #### Command `upload-image`: example
 
 ```sh
-python wiki_tool_python/wikitool.py upload-image NVGogol.png Pic9231i9149i.png https://absurdopedia.wiki/w
+python -m wiki_tool_python.wikitool upload-image NVGogol.png Pic9231i9149i.png https://absurdopedia.wiki/w
 ```
 
 ### Command `upload-images`
 
-`python wiki_tool_python/wikitool.py upload-images [OPTIONS] LIST_FILE DOWNLOAD_DIR API_URL`
+`python -m wiki_tool_python.wikitool upload-images [OPTIONS] LIST_FILE DOWNLOAD_DIR API_URL`
 
 Upload images listed in file `LIST_FILE` (file should be in the same format as output of `list-images` command) from directory `DOWNLOAD_DIR` to wiki.
 
@@ -448,7 +430,7 @@ Upload images listed in file `LIST_FILE` (file should be in the same format as o
 #### Command `upload-images`: example
 
 ```sh
-python wiki_tool_python/wikitool.py upload-images images.txt wiki_images https://absurdopedia.wiki/w
+python -m wiki_tool_python.wikitool upload-images images.txt wiki_images https://absurdopedia.wiki/w
 ```
 
 Where `images.txt` is list of images.
@@ -459,7 +441,7 @@ Progress bar is displayed.
 
 ### Command `votecount`
 
-`python wiki_tool_python/wikitool.py votecount [OPTIONS] API_URL USER_LIST_FILE`
+`python -m wiki_tool_python.wikitool votecount [OPTIONS] API_URL USER_LIST_FILE`
 
 Get user edit count for users from file `USER_LIST_FILE` and calculate vote power (according to [Wikireality rules](http://wikireality.ru/wiki/%D0%92%D0%B8%D0%BA%D0%B8%D1%80%D0%B5%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D1%81%D1%82%D1%8C:%D0%9A#4.4._.D0.92.D0.B5.D1.81_.D0.B3.D0.BE.D0.BB.D0.BE.D1.81.D0.B0)).
 
@@ -512,7 +494,7 @@ Cat1987
 ```
 
 ```sh
-python wiki_tool_python/wikitool.py --mediawiki-version 1.19 votecount --start 2018-07-12 --end 2018-10-12 --namespacefile ../data/votecount/namespaces.json --output-format txt http://wikireality.ru/w ../data/votecount/voters.txt
+python -m wiki_tool_python.wikitool --mediawiki-version 1.19 votecount --start 2018-07-12 --end 2018-10-12 --namespacefile ../data/votecount/namespaces.json --output-format txt http://wikireality.ru/w ../data/votecount/voters.txt
 ```
 
 Output:
@@ -574,7 +556,7 @@ VotePower: 1.32
 
 ### Command `list-directory-pages`
 
-`python wiki_tool_python/wikitool.py list-directory-pages [OPTIONS] INPUT_DIRECTORY OUTPUT_FILE`
+`python -m wiki_tool_python.wikitool list-directory-pages [OPTIONS] INPUT_DIRECTORY OUTPUT_FILE`
 
 Write list of `.txt` file paths in directory to JSON file.
 
@@ -585,7 +567,7 @@ Directories are handled recursively.
 There are files `../data/wiki-pages/Test.txt` and `../data/wiki-pages/Test/Test1.txt`.
 
 ```sh
-python ./wiki_tool_python/wikitool.py list-directory-pages ../data/wiki-pages/ ../data/wiki-pages-list.json
+python -m wiki_tool_python.wikitool list-directory-pages ../data/wiki-pages/ ../data/wiki-pages-list.json
 ```
 
 File `../data/wiki-pages-list.json` will contain the following text:
@@ -603,7 +585,7 @@ No specific options.
 
 ### Command `upload-pages`
 
-`python wiki_tool_python/wikitool.py upload-pages [OPTIONS] API_URL INPUT_DIRECTORY LIST_FILE`
+`python -m wiki_tool_python.wikitool upload-pages [OPTIONS] API_URL INPUT_DIRECTORY LIST_FILE`
 
 Create or overwrite pages from files in input directory listed in list file.
 
@@ -629,7 +611,7 @@ File `../data/wiki-pages-list.json` contains the following text:
 Command is:
 
 ```sh
-python ./wiki_tool_python/wikitool.py upload-pages --prefix="User:ArtushakBot/" --summary="Test page upload" https://genepedia.ru ../data/wiki-pages/ ../data/wiki-pages/wiki-pages-list.json
+python -m wiki_tool_python.wikitool upload-pages --prefix="User:ArtushakBot/" --summary="Test page upload" https://genepedia.ru ../data/wiki-pages/ ../data/wiki-pages/wiki-pages-list.json
 ```
 
 The following pages will be created:
@@ -653,7 +635,7 @@ File `../data/wiki-pages-list.json` contains the following text:
 Command is:
 
 ```sh
-python ./wiki_tool_python/wikitool.py upload-pages --dictionary --prefix="User:ArtushakBot/" --summary="Test page upload" https://genepedia.ru ../data/wiki-pages/ ../data/wiki-pages/wiki-pages-list.json
+python -m wiki_tool_python.wikitool upload-pages --dictionary --prefix="User:ArtushakBot/" --summary="Test page upload" https://genepedia.ru ../data/wiki-pages/ ../data/wiki-pages/wiki-pages-list.json
 ```
 
 The following pages will be created:
@@ -677,7 +659,7 @@ The following pages will be created:
 
 ### Command `generate-import-script`
 
-`python wiki_tool_python/wikitool.py list-directory-pages [OPTIONS] LIST_FILE INPUT_DIRECTORY OUTPUT_SCRIPT_FILE LOG_FILE`
+`python -m wiki_tool_python.wikitool list-directory-pages [OPTIONS] LIST_FILE INPUT_DIRECTORY OUTPUT_SCRIPT_FILE LOG_FILE`
 
 Write bash script to import pages from list file using MediaWiki maintenance script `importTextFiles.php` (see [MediaWiki help](https://www.mediawiki.org/wiki/Manual:ImportTextFiles.php)). It can be uploaded to server along with page files and then run to import to them to website to avoid API overhead.
 
@@ -721,7 +703,7 @@ File `../data/wiki-pages-list.json` contains the following text:
 Command is:
 
 ```sh
-python ./wiki_tool_python/wikitool.py generate-import-script --prefix="User:ArtushakBot/" --summary="Test page upload" --bot --maintenance-directory="/srv/http/mediawiki/w/maintenance" ../data/wiki-pages/wiki-pages-list.json ./data/wiki-pages ../data/importPages.sh ./data/log.txt
+python -m wiki_tool_python.wikitool generate-import-script --prefix="User:ArtushakBot/" --summary="Test page upload" --bot --maintenance-directory="/srv/http/mediawiki/w/maintenance" ../data/wiki-pages/wiki-pages-list.json ./data/wiki-pages ../data/importPages.sh ./data/log.txt
 ```
 
 File `../data/importPages.sh` will contain following text:
@@ -738,11 +720,11 @@ echo -ne '[####################]         2 /         2\r'
 ## Main example
 
 ```sh
-poetry install --no-dev
+uv sync --no-dev
 mkdir ../absurdopedia
 mkdir ../absurdopedia/download
-poetry run python wiki_tool_python/wikitool.py list-images --output-file ../absurdopedia/image.txt https://absurdopedia.wiki/w
-poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/image.txt ../absurdopedia/download
+uv run python -m wiki_tool_python.wikitool list-images --output-file ../absurdopedia/image.txt https://absurdopedia.wiki/w
+uv run python -m wiki_tool_python.wikitool download-images ../absurdopedia/image.txt ../absurdopedia/download
 ```
 
 ## Files
@@ -754,8 +736,9 @@ poetry run python wiki_tool_python/wikitool.py download-images ../absurdopedia/i
 
 *   [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) developers.
 *   [Python](https://www.python.org/) developers.
-*   [Poetry](https://python-poetry.org/) developers.
+*   [uv](https://docs.astral.sh/uv/) developers.
 *   [requests](https://3.python-requests.org/) developers.
+*   [ruff](https://astral.sh/ruff) developers.
 *   [Click](https://click.palletsprojects.com) developers.
 *   Рыцарь (Knight) aka Riddari aka Тэйтанка-птекила (Teitanka-ptekila).
 *   [Wikireality](http://wikireality.ru) users, especially members of Dimetr's Telegram chat.
