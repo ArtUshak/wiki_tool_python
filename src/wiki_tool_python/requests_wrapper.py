@@ -1,7 +1,8 @@
 """Wrapper for `requests` library."""
+
 import time
 
-from requests import Session
+from requests import Response, Session
 
 
 class ThrottledSession(Session):
@@ -10,13 +11,13 @@ class ThrottledSession(Session):
     interval: float
     first_request_performed: bool
 
-    def __init__(self, interval: float):
+    def __init__(self, interval: float) -> None:
         """Initialize."""
         super().__init__()
         self.interval = interval
         self.first_request_performed = False
 
-    def request(self, method, url, **kwargs):
+    def request(self, method: str, url: str, **kwargs) -> Response:
         """Perform HTTP request."""
         if self.first_request_performed:
             if self.interval > 0.0:

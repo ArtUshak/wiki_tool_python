@@ -91,6 +91,9 @@ ENV/
 # MyPy cache
 .mypy_cache/
 
+# Ruff cache
+.ruff_cache/
+
 # Poetry virtual environment
 .venv
 
